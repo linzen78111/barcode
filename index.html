@@ -149,30 +149,16 @@
             </div>
 
             <!-- 手動輸入頁面 -->
-            <div id="localDataPage" class="page-content local-data-page hidden">
-                <div class="local-data-header">
-                    <div class="local-data-count">
-                        暫存資料：<span id="localDataCount">0</span> 筆
-                    </div>
-                    <div class="local-data-actions">
-                        <button id="addManualBtn" class="btn-primary">
-                            <i class="fas fa-plus"></i> 新增條碼
+            <div id="manualPage" class="page-content hidden">
+                <div class="manual-page">
+                    <div class="scan-header">
+                        <button class="btn-back" onclick="showPage('official')">
+                            <span class="icon">←</span>
+                            返回
                         </button>
-                        <button id="uploadLocalDataBtn" class="btn-primary">
-                            <i class="fas fa-upload"></i> 上傳全部
-                        </button>
+                        <h2>手動輸入條碼</h2>
                     </div>
-                </div>
-                <div id="localDataList" class="local-data-list">
-                    <!-- 本地暫存的條碼資料會動態插入這裡 -->
-                </div>
-            </div>
-
-            <!-- 手動輸入對話框 -->
-            <div id="manualModal" class="modal">
-                <div class="modal-content">
-                    <h2>手動輸入條碼</h2>
-                    <form id="manualForm">
+                    <form class="barcode-form" id="manualForm">
                         <div class="form-group">
                             <label for="manualCode">條碼</label>
                             <input type="text" id="manualCode" required>
