@@ -14,9 +14,6 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
-    <!-- 漢堡選單按鈕 -->
-    <button class="menu-toggle">☰</button>
-
     <div class="layout">
         <div id="app">
             <!-- 登入頁面 -->
@@ -151,15 +148,10 @@
             <!-- 手動輸入頁面 -->
             <div id="localDataPage" class="page-content local-data-page hidden">
                 <div class="local-data-header">
-                    <div class="local-data-header-left">
-                        <div class="local-data-count">
-                            暫存資料：<span id="localDataCount">0</span> 筆
-                        </div>
+                    <div class="local-data-count">
+                        暫存資料：<span id="localDataCount">0</span> 筆
                     </div>
                     <div class="local-data-actions">
-                        <button id="backToMainBtn" class="btn-primary">
-                            <i class="fas fa-arrow-left"></i> 返回
-                        </button>
                         <button id="addManualBtn" class="btn-primary">
                             <i class="fas fa-plus"></i> 新增條碼
                         </button>

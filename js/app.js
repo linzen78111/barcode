@@ -1118,26 +1118,4 @@ overlay.addEventListener('click', () => {
 // 點擊側邊欄內部不關閉
 sidebar.addEventListener('click', (e) => {
     e.stopPropagation();
-});
-
-// 返回按鈕點擊事件
-document.addEventListener('DOMContentLoaded', () => {
-    const backToMainBtn = document.getElementById('backToMainBtn');
-    if (backToMainBtn) {
-        backToMainBtn.addEventListener('click', () => {
-            console.log('點擊返回按鈕');
-            // 隱藏手動輸入頁面
-            document.getElementById('localDataPage').classList.add('hidden');
-            // 顯示主內容區域
-            document.querySelector('.main-content').style.display = 'block';
-            // 移除所有導航項目的 active 類
-            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
-            // 設置官方資料頁面為活動狀態
-            const officialTab = document.querySelector('[data-page="official"]');
-            if (officialTab) {
-                officialTab.classList.add('active');
-                loadBarcodes(); // 重新載入條碼資料
-            }
-        });
-    }
 }); 

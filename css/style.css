@@ -354,8 +354,6 @@ body {
     min-height: calc(100vh - var(--header-height));
     position: relative;
     margin-top: 0;
-    height: 100vh;
-    overflow-y: auto;
 }
 
 .local-data-header {
@@ -369,30 +367,6 @@ body {
     position: sticky;
     top: 0;
     z-index: 100;
-    margin-bottom: 1rem;
-}
-
-.local-data-header-left {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.btn-back {
-    background-color: #6c757d;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.9rem;
-}
-
-.btn-back:hover {
-    background-color: #5a6268;
 }
 
 .local-data-actions {
@@ -406,7 +380,7 @@ body {
 }
 
 .local-data-list {
-    padding-top: 0.5rem;
+    margin-top: 1rem;
 }
 
 .local-data-item {
@@ -991,7 +965,6 @@ body {
     padding: 0;
     margin: 0;
     margin-left: var(--sidebar-width);
-    position: relative;
 }
 
 .page-content.hidden {
@@ -1007,8 +980,6 @@ body {
     position: relative;
     padding: 0;
     margin-top: 0;
-    height: 100vh;
-    overflow-y: auto;
 }
 
 .local-data-header {
@@ -1037,9 +1008,9 @@ body {
 }
 
 .local-data-list {
-    padding-top: calc(60px + 1rem); /* header 高度 + 間距 */
-    padding-left: 1rem;
-    padding-right: 1rem;
+    margin-top: 60px; /* 為 header 預留空間 */
+    padding: 1rem;
+    background: #f8f9fa;
 }
 
 .local-data-item {
