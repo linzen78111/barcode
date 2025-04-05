@@ -874,12 +874,12 @@ body {
 }
 
 .manual-page {
-    padding: 1rem;
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
 }
 
 .barcode-form {
-    max-width: 600px;
-    margin: 0 auto;
     background: white;
     padding: 2rem;
     border-radius: 8px;
@@ -893,7 +893,7 @@ body {
 .form-group label {
     display: block;
     margin-bottom: 0.5rem;
-    font-weight: bold;
+    font-weight: 500;
     color: #333;
 }
 
@@ -901,18 +901,18 @@ body {
 .form-group select,
 .form-group textarea {
     width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #ddd;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 1rem;
 }
 
 .form-group textarea {
-    height: 100px;
+    height: 120px;
     resize: vertical;
 }
 
-.form-buttons {
+.form-actions {
     display: flex;
     gap: 1rem;
     justify-content: flex-end;
@@ -927,16 +927,13 @@ body {
     border-radius: 4px;
     cursor: pointer;
     font-size: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
 }
 
 .btn-primary:hover {
     background-color: #357abd;
 }
 
-.btn-secondary {
+.btn-cancel {
     background-color: #6c757d;
     color: white;
     border: none;
@@ -946,19 +943,27 @@ body {
     font-size: 1rem;
 }
 
-.btn-secondary:hover {
+.btn-cancel:hover {
     background-color: #5a6268;
 }
 
-#manualModal {
-    z-index: 2000;
-    padding-top: 0;
-    align-items: flex-start;
-}
-
-#manualModal .modal-content {
-    margin-top: var(--header-height);
-    max-height: calc(100vh - var(--header-height));
+@media screen and (max-width: 768px) {
+    .page-content {
+        margin-left: 0;
+    }
+    
+    .manual-page {
+        padding: 1rem;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn-primary,
+    .btn-cancel {
+        width: 100%;
+    }
 }
 
 .page-content {
