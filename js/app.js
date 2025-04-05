@@ -16,6 +16,14 @@ const previewArea = document.querySelector('.upload-preview');
 const previewTable = document.querySelector('.preview-table');
 const btnUpload = document.querySelector('.btn-upload');
 
+// 手動輸入相關元素
+const manualModal = document.getElementById('manualModal');
+const manualForm = document.getElementById('manualForm');
+const addManualBtn = document.getElementById('addManualBtn');
+const uploadLocalDataBtn = document.getElementById('uploadLocalDataBtn');
+const localDataList = document.getElementById('localDataList');
+const localDataCount = document.getElementById('localDataCount');
+
 // 條碼資料類別
 class BarcodeData {
     constructor(data) {
@@ -361,37 +369,35 @@ function displayBarcodes(barcodes) {
 
 // 顯示條碼詳細資訊
 function showBarcodeDetails(barcode) {
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    
-    const content = document.createElement('div');
-    content.className = 'modal-content';
-    
-    // 格式化時間戳記
-    const createdAt = barcode.createdAt ? new Date(barcode.createdAt.seconds * 1000).toLocaleString('zh-TW') : '無';
-    const updatedAt = barcode.updatedAt ? new Date(barcode.updatedAt.seconds * 1000).toLocaleString('zh-TW') : '無';
-    
-    content.innerHTML = `
-        <h2>${barcode.name || '未命名商品'}</h2>
-        <div class="barcode-details">
-            <div class="barcode-image-container">
-                <svg id="barcode"></svg>
+    console.log('顯示條碼詳情:', barcode);
+    const detailsModal = document.createElement('div');
+    detailsModal.className = 'modal';
+    detailsModal.innerHTML = `
+        <div class="modal-content">
+            <h2>條碼詳情</h2>
+            <div class="barcode-details">
+                <div class="barcode-image-container">
+                    <svg id="barcode-${barcode.code}"></svg>
+                </div>
+                <div class="barcode-info">
+                    <p><strong>商品名稱：</strong>${barcode.name || '未命名商品'}</p>
+                    <p><strong>條碼：</strong>${barcode.code || '無'}</p>
+                    <p><strong>價格：</strong>$${barcode.price || 0}</p>
+                    <p><strong>商店：</strong>${barcode.store || '未知'}</p>
+                    ${barcode.description ? `<p><strong>描述：</strong>${barcode.description}</p>` : ''}
+                </div>
             </div>
-            <p><strong>條碼:</strong> ${barcode.code || '無'}</p>
-            <p><strong>價格:</strong> $${barcode.price || 0}</p>
-            <p><strong>商店:</strong> ${barcode.store || '未知'}</p>
-            <p><strong>描述:</strong> ${barcode.description || '無'}</p>
-            <p><strong>建立時間:</strong> ${createdAt}</p>
-            <p><strong>更新時間:</strong> ${updatedAt}</p>
+            <div class="form-actions">
+                <button class="btn-cancel">關閉</button>
+            </div>
         </div>
     `;
     
-    modal.appendChild(content);
-    document.body.appendChild(modal);
+    document.body.appendChild(detailsModal);
     
-    // 生成條碼
-    try {
-        if (barcode.code) {
+    // 顯示條碼
+    if (barcode.code) {
+        try {
             // 根據條碼長度決定格式
             let format;
             const code = barcode.code.replace(/\D/g, ''); // 移除非數字字符
@@ -410,7 +416,7 @@ function showBarcodeDetails(barcode) {
                     format = "CODE128";
             }
             
-            JsBarcode("#barcode", code, {
+            JsBarcode(`#barcode-${barcode.code}`, code, {
                 format: format,
                 width: 2,
                 height: 100,
@@ -418,23 +424,34 @@ function showBarcodeDetails(barcode) {
                 fontSize: 16,
                 margin: 10,
                 background: "#ffffff",
-                lineColor: "#000000"
+                lineColor: "#000000",
+                textAlign: "center",
+                textPosition: "bottom",
+                textMargin: 6,
+                font: "monospace"
             });
+        } catch (error) {
+            console.error('生成條碼失敗:', error);
+            const barcodeContainer = detailsModal.querySelector('.barcode-image-container');
+            barcodeContainer.innerHTML = '<p class="error">無法生成條碼圖片</p>';
         }
-    } catch (error) {
-        console.error('生成條碼失敗:', error);
-        console.error('條碼資料:', barcode.code);
-        const barcodeContainer = content.querySelector('.barcode-image-container');
-        barcodeContainer.innerHTML = `
-            <p class="error">無法生成條碼</p>
-            <p class="error-details">錯誤原因：${error.message}</p>
-        `;
     }
     
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.remove();
-        }
+    // 顯示對話框
+    setTimeout(() => {
+        detailsModal.style.display = 'flex';
+        detailsModal.style.opacity = '1';
+        detailsModal.style.visibility = 'visible';
+    }, 10);
+    
+    // 關閉按鈕事件
+    const closeBtn = detailsModal.querySelector('.btn-cancel');
+    closeBtn.addEventListener('click', () => {
+        detailsModal.style.opacity = '0';
+        detailsModal.style.visibility = 'hidden';
+        setTimeout(() => {
+            document.body.removeChild(detailsModal);
+        }, 300);
     });
 }
 
@@ -442,6 +459,11 @@ function showBarcodeDetails(barcode) {
 toggleSidebarBtn.addEventListener('click', () => {
     sidebar.classList.toggle('collapsed');
     mainContent.classList.toggle('expanded');
+    
+    // 在手機版時同時處理遮罩層
+    if (window.innerWidth <= 768) {
+        overlay.classList.toggle('active');
+    }
 });
 
 searchInput.addEventListener('input', () => {
@@ -516,13 +538,14 @@ barcodeForm.addEventListener('submit', async (e) => {
             price: Number(priceInput.value),
             store: storeInput.value,
             description: descriptionInput.value,
-            type: 'EAN13', // 預設使用 EAN13
-            createdAt: firebase.firestore.Timestamp.now(),
-            updatedAt: firebase.firestore.Timestamp.now()
+            type: 'EAN13',
+            createdAt: new Date(),
+            updatedAt: new Date()
         };
         
-        await barcodeService.saveBarcode(barcodeData);
-        alert('儲存成功！');
+        console.log('新增掃描資料到本地暫存:', barcodeData);
+        localBarcodes.push(barcodeData);
+        updateLocalDataList();
         
         // 重置表單
         barcodeForm.reset();
@@ -530,6 +553,8 @@ barcodeForm.addEventListener('submit', async (e) => {
         
         // 重新開始掃描
         html5QrcodeScanner.resume();
+        
+        alert('條碼已加入暫存清單！');
     } catch (error) {
         console.error('儲存條碼資料失敗:', error);
         alert('儲存失敗：' + error.message);
@@ -552,28 +577,83 @@ document.querySelector('.btn-rescan').addEventListener('click', () => {
     html5QrcodeScanner.resume();
 });
 
-// 修改導航項目點擊事件
-navItems.forEach(item => {
+// 掃描頁面的返回按鈕
+document.querySelector('#scanPage .btn-back').addEventListener('click', () => {
+    console.log('點擊掃描頁面返回按鈕');
+    scanPage.classList.add('hidden');
+    document.querySelector('.main-content').style.display = 'block';
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear();
+        html5QrcodeScanner = null;
+    }
+    document.querySelector('[data-page="official"]').click();
+});
+
+// 側邊欄導航點擊事件
+document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => {
-        navItems.forEach(i => i.classList.remove('active'));
+        const page = item.getAttribute('data-page');
+        console.log('切換到頁面:', page);
+        
+        // 隱藏所有頁面
+        document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));
+        
+        // 隱藏主內容區域
+        document.querySelector('.main-content').style.display = 'none';
+        
+        // 移除所有導航項目的 active 類
+        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+        
+        // 添加當前導航項目的 active 類
         item.classList.add('active');
         
-        const page = item.dataset.page;
-        if (page === 'scan') {
-            scanPage.classList.remove('hidden');
-            if (!html5QrcodeScanner) {
-                initializeScanner();
-            }
-        } else if (page === 'upload') {
-            uploadModal.classList.remove('hidden');
-        } else {
-            scanPage.classList.add('hidden');
-            uploadModal.classList.add('hidden');
-            if (html5QrcodeScanner) {
-                html5QrcodeScanner.clear();
-                html5QrcodeScanner = null;
-            }
-            loadBarcodes();
+        // 根據頁面類型顯示對應內容
+        switch (page) {
+            case 'scan':
+                console.log('顯示掃描頁面');
+                scanPage.classList.remove('hidden');
+                if (!html5QrcodeScanner) {
+                    initializeScanner();
+                }
+                break;
+                
+            case 'manual':
+                console.log('顯示手動輸入頁面');
+                document.getElementById('localDataPage').classList.remove('hidden');
+                updateLocalDataList();
+                break;
+                
+            case 'upload':
+                console.log('顯示上傳確認對話框');
+                if (localBarcodes.length === 0) {
+                    alert('沒有可上傳的資料！');
+                    document.querySelector('[data-page="manual"]').click();
+                    return;
+                }
+                document.getElementById('localDataPage').classList.remove('hidden');
+                uploadModal.classList.remove('hidden');
+                uploadModal.style.display = 'flex';
+                uploadModal.style.opacity = '1';
+                uploadModal.style.visibility = 'visible';
+                updateUploadPreview();
+                break;
+                
+            case 'official':
+            case 'personal':
+                if (html5QrcodeScanner) {
+                    html5QrcodeScanner.clear();
+                    html5QrcodeScanner = null;
+                }
+                document.querySelector('.main-content').style.display = 'block';
+                loadBarcodes();
+                break;
+        }
+        
+        // 在手機版時，點擊選單項目後關閉側邊欄
+        if (window.innerWidth <= 768) {
+            sidebar.classList.add('collapsed');
+            mainContent.classList.add('expanded');
+            overlay.classList.remove('active');
         }
     });
 });
@@ -627,7 +707,11 @@ async function handleFile(file) {
 }
 
 // 讀取檔案內容
-function readFile(file) {
+async function readFile(file) {
+    if (!file) {
+        throw new Error('請選擇檔案');
+    }
+
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         
@@ -636,11 +720,17 @@ function readFile(file) {
                 let data;
                 if (file.name.endsWith('.csv')) {
                     data = parseCSV(e.target.result);
-                } else {
-                    // 使用 XLSX 處理 Excel 檔案
+                } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
                     const workbook = XLSX.read(e.target.result, { type: 'binary' });
                     data = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                } else {
+                    throw new Error('不支援的檔案格式，請使用 CSV 或 Excel 檔案');
                 }
+                
+                if (!data || data.length === 0) {
+                    throw new Error('檔案中沒有資料');
+                }
+                
                 resolve(data);
             } catch (error) {
                 reject(error);
@@ -681,7 +771,8 @@ function parseCSV(csv) {
 
 // 顯示預覽
 function showPreview(data) {
-    if (!data.length) {
+    console.log('顯示預覽資料:', data);
+    if (!data || !data.length) {
         alert('檔案中沒有資料');
         return;
     }
@@ -710,29 +801,60 @@ function showPreview(data) {
     previewArea.classList.remove('hidden');
 }
 
-// 上傳按鈕點擊處理
+// 上傳按鈕點擊事件
 btnUpload.addEventListener('click', async () => {
+    console.log('點擊批量上傳按鈕');
     try {
-        const data = await readFile(fileInput.files[0]);
-        await barcodeService.bulkUploadBarcodes(data);
+        const fileData = await readFile(fileInput.files[0]);
+        console.log('檔案資料:', fileData);
+        
+        if (!fileData || fileData.length === 0) {
+            alert('沒有可上傳的資料！');
+            return;
+        }
+
+        await barcodeService.bulkUploadBarcodes(fileData);
         alert('上傳成功！');
         uploadModal.classList.add('hidden');
-        loadBarcodes(); // 重新載入資料
+        loadBarcodes(); // 重新載入主頁面資料
+        
+        // 清理預覽區域和檔案輸入
+        previewArea.classList.add('hidden');
+        previewTable.innerHTML = '';
+        fileInput.value = '';
+        btnUpload.disabled = true;
     } catch (error) {
         console.error('上傳失敗:', error);
         alert('上傳失敗：' + error.message);
     }
 });
 
-// 取消按鈕點擊處理
-document.querySelector('.btn-cancel').addEventListener('click', () => {
-    uploadModal.classList.add('hidden');
+// 檔案輸入變更事件
+fileInput.addEventListener('change', async (e) => {
+    console.log('選擇檔案');
+    const file = e.target.files[0];
+    if (file) {
+        try {
+            const data = await readFile(file);
+            showPreview(data);
+            btnUpload.disabled = false;
+        } catch (error) {
+            console.error('讀取檔案失敗:', error);
+            alert('讀取檔案失敗：' + error.message);
+            fileInput.value = '';
+            btnUpload.disabled = true;
+        }
+    }
 });
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
     initializeDropZone();
     checkAndShowUploadButton();
+    
+    // 確保側邊欄初始狀態為收合
+    sidebar.classList.add('collapsed');
+    mainContent.classList.add('expanded');
 });
 
 // 初始化資料
@@ -750,180 +872,250 @@ async function initializeData() {
     }
 }
 
-// 本地儲存的條碼資料
+// 本地暫存的條碼資料
 let localBarcodes = [];
 
-// 處理條碼表單提交
-document.getElementById('barcodeForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const formData = {
-        name: document.getElementById('name').value,
-        code: document.getElementById('code').value,
-        price: parseFloat(document.getElementById('price').value),
-        store: document.getElementById('store').value,
-        description: document.getElementById('description').value,
-        createdAt: new Date(),
-        updatedAt: new Date()
-    };
-
-    // 儲存到本地陣列
-    localBarcodes.push(formData);
-    updateLocalBarcodeList();
-
+// 顯示手動輸入對話框
+function showManualModal() {
+    console.log('顯示手動輸入對話框');
+    const manualModal = document.getElementById('manualModal');
+    if (!manualModal) {
+        console.error('找不到手動輸入對話框');
+        return;
+    }
+    manualModal.classList.remove('hidden');
+    manualModal.style.display = 'flex';
+    manualModal.style.opacity = '1';
+    manualModal.style.visibility = 'visible';
     // 重置表單
-    this.reset();
-    document.getElementById('scanResult').classList.add('hidden');
-    startScanning();
-});
+    document.getElementById('manualForm').reset();
+}
 
-// 更新本地條碼列表顯示
-function updateLocalBarcodeList() {
-    const container = document.querySelector('.barcode-items');
-    const count = document.getElementById('localBarcodeCount');
+// 隱藏手動輸入對話框
+function hideManualModal() {
+    console.log('隱藏手動輸入對話框');
+    const manualModal = document.getElementById('manualModal');
+    if (!manualModal) {
+        console.error('找不到手動輸入對話框');
+        return;
+    }
+    manualModal.classList.add('hidden');
+    manualModal.style.display = 'none';
+    manualModal.style.opacity = '0';
+    manualModal.style.visibility = 'hidden';
+    // 更新本地暫存列表
+    updateLocalDataList();
+}
+
+// 更新本地暫存列表
+function updateLocalDataList() {
+    console.log('更新本地暫存列表');
+    const localDataList = document.getElementById('localDataList');
+    const localDataCount = document.getElementById('localDataCount');
     
-    // 更新計數
-    count.textContent = localBarcodes.length;
+    if (!localDataList || !localDataCount) {
+        console.error('找不到必要的 DOM 元素');
+        return;
+    }
     
-    // 清空並重新填充列表
-    container.innerHTML = '';
+    // 更新數量
+    localDataCount.textContent = localBarcodes.length;
+    
+    // 清空列表
+    localDataList.innerHTML = '';
+    
+    // 添加條碼項目
     localBarcodes.forEach((barcode, index) => {
         const item = document.createElement('div');
-        item.className = 'barcode-item';
+        item.className = 'local-data-item';
         item.innerHTML = `
-            <div class="barcode-info">
-                <strong>${barcode.name}</strong>
-                <span>${barcode.code}</span>
-                <span>${barcode.store}</span>
-                <span>$${barcode.price}</span>
+            <div class="local-data-info">
+                <h3>${barcode.name || '未命名商品'}</h3>
+                <p>條碼: ${barcode.code || '無'}</p>
+                <p>價格: $${barcode.price || 0}</p>
+                <p>商店: ${barcode.store || '未知'}</p>
+                ${barcode.description ? `<p class="description-preview">描述: ${barcode.description}</p>` : ''}
             </div>
-            <button class="btn-delete" data-index="${index}">❌</button>
         `;
-        container.appendChild(item);
-    });
-
-    // 為刪除按鈕添加事件監聽
-    document.querySelectorAll('.btn-delete').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const index = parseInt(this.dataset.index);
-            localBarcodes.splice(index, 1);
-            updateLocalBarcodeList();
+        
+        // 添加點擊事件
+        item.addEventListener('click', () => {
+            showBarcodeDetails(barcode);
         });
+        
+        localDataList.appendChild(item);
     });
 }
 
-// 處理上傳按鈕點擊
-document.getElementById('uploadButton').addEventListener('click', function() {
-    if (localBarcodes.length === 0) {
-        alert('沒有可上傳的條碼資料！');
-        return;
-    }
-    document.getElementById('uploadModal').classList.remove('hidden');
+// 處理手動輸入表單提交
+manualForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    console.log('手動輸入表單提交');
+    
+    const barcodeData = {
+        code: document.getElementById('manualCode').value,
+        name: document.getElementById('manualName').value,
+        price: Number(document.getElementById('manualPrice').value),
+        store: document.getElementById('manualStore').value,
+        description: document.getElementById('manualDescription').value,
+        type: 'EAN13',
+        createdAt: new Date(),
+        updatedAt: new Date()
+    };
+    
+    console.log('新增暫存資料:', barcodeData);
+    localBarcodes.push(barcodeData);
+    
+    // 更新本地暫存列表
+    updateLocalDataList();
+    
+    // 顯示成功訊息
+    alert('條碼已加入暫存清單！');
+    
+    // 重置表單並關閉對話框
+    manualForm.reset();
+    hideManualModal();
+    
+    // 確保本地暫存頁面顯示
+    document.getElementById('localDataPage').classList.remove('hidden');
 });
 
-// 處理確認上傳
-document.querySelector('#uploadModal .btn-upload').addEventListener('click', async function() {
-    try {
-        const user = firebase.auth().currentUser;
-        if (!user) throw new Error('請先登入');
-        
-        const isOfficial = await barcodeService.isOfficialAccount();
-        const batch = db.batch();
-        const timestamp = firebase.firestore.Timestamp.now();
-        
-        // 將條碼資料按商店分組並上傳
-        for (const barcode of localBarcodes) {
-            let docRef;
-            if (isOfficial) {
-                docRef = db
-                    .collection('official')
-                    .doc('data')
-                    .collection('stores')
-                    .doc(barcode.store)
-                    .collection('barcodes')
-                    .doc(barcode.code);
-            } else {
-                docRef = db
-                    .collection('users')
-                    .doc(user.uid)
-                    .collection('stores')
-                    .doc(barcode.store)
-                    .collection('barcodes')
-                    .doc(barcode.code);
-            }
-            
-            const barcodeData = {
-                ...barcode,
-                fromOfficial: isOfficial,
-                createdAt: timestamp,
-                updatedAt: timestamp,
-                user_id: user.uid
-            };
-            
-            batch.set(docRef, barcodeData, { merge: true });
+// 處理取消按鈕
+document.querySelectorAll('.btn-cancel').forEach(btn => {
+    btn.addEventListener('click', () => {
+        console.log('點擊取消按鈕');
+        if (btn.closest('#manualModal')) {
+            hideManualModal();
+        } else if (btn.closest('#uploadModal')) {
+            uploadModal.classList.add('hidden');
+            uploadModal.style.display = 'none';
+            uploadModal.style.opacity = '0';
+            uploadModal.style.visibility = 'hidden';
         }
-        
-        await batch.commit();
-        
-        // 清空本地儲存
-        localBarcodes = [];
-        updateLocalBarcodeList();
-        
-        // 關閉對話框
-        document.getElementById('uploadModal').classList.add('hidden');
-        
+    });
+});
+
+// 點擊對話框背景關閉
+manualModal.addEventListener('click', (e) => {
+    if (e.target === manualModal) {
+        hideManualModal();
+    }
+});
+
+// 新增條碼按鈕點擊事件
+if (addManualBtn) {
+    addManualBtn.addEventListener('click', () => {
+        console.log('點擊新增條碼按鈕');
+        showManualModal();
+    });
+} else {
+    console.error('找不到新增條碼按鈕');
+}
+
+// 上傳全部按鈕
+uploadLocalDataBtn.addEventListener('click', () => {
+    console.log('點擊上傳全部按鈕');
+    if (localBarcodes.length === 0) {
+        alert('沒有可上傳的資料！');
+        return;
+    }
+    // 更新上傳預覽
+    updateUploadPreview();
+    // 顯示上傳確認對話框
+    uploadModal.classList.remove('hidden');
+    uploadModal.style.display = 'flex';
+    uploadModal.style.opacity = '1';
+    uploadModal.style.visibility = 'visible';
+    document.getElementById('localDataPage').classList.remove('hidden');
+});
+
+// 更新上傳預覽
+function updateUploadPreview() {
+    console.log('更新上傳預覽');
+    const uploadCount = document.getElementById('uploadCount');
+    const previewList = document.querySelector('.local-data-list-preview');
+    
+    if (!uploadCount || !previewList) {
+        console.error('找不到必要的 DOM 元素');
+        return;
+    }
+    
+    // 更新數量
+    uploadCount.textContent = localBarcodes.length;
+    
+    // 更新預覽列表
+    previewList.innerHTML = '';
+    
+    localBarcodes.forEach((barcode, index) => {
+        const item = document.createElement('div');
+        item.className = 'preview-item';
+        item.innerHTML = `
+            <div class="preview-info">
+                <h4>${barcode.name || '未命名商品'}</h4>
+                <p>條碼: ${barcode.code || '無'}</p>
+                <p>價格: $${barcode.price || 0}</p>
+                <p>商店: ${barcode.store || '未知'}</p>
+                ${barcode.description ? `<p>描述: ${barcode.description}</p>` : ''}
+            </div>
+        `;
+        previewList.appendChild(item);
+    });
+}
+
+// 上傳確認對話框的確定按鈕
+document.querySelector('#uploadModal .btn-upload').addEventListener('click', async () => {
+    console.log('確認上傳');
+    try {
+        console.log('開始上傳本地暫存資料...');
+        for (const barcode of localBarcodes) {
+            console.log('上傳條碼:', barcode);
+            await barcodeService.saveBarcode({
+                ...barcode,
+                createdAt: firebase.firestore.Timestamp.now(),
+                updatedAt: firebase.firestore.Timestamp.now()
+            });
+        }
+
         alert('上傳成功！');
+        localBarcodes = []; // 清空本地暫存
+        updateLocalDataList(); // 更新本地暫存列表顯示
+        loadBarcodes(); // 重新載入主頁面資料
+        
+        // 隱藏上傳確認對話框
+        uploadModal.classList.add('hidden');
+        
+        // 返回主頁面
+        document.querySelector('[data-page="official"]').click();
     } catch (error) {
         console.error('上傳失敗:', error);
         alert('上傳失敗：' + error.message);
     }
 });
 
-// 處理取消上傳
-document.querySelector('#uploadModal .btn-cancel').addEventListener('click', function() {
-    document.getElementById('uploadModal').classList.add('hidden');
+// 上傳確認對話框的取消按鈕
+document.querySelector('#uploadModal .btn-cancel').addEventListener('click', () => {
+    console.log('取消上傳');
+    uploadModal.classList.add('hidden');
 });
 
-// 處理返回按鈕點擊
-document.querySelector('.btn-back').addEventListener('click', () => {
-    // 隱藏掃描頁面
-    scanPage.classList.add('hidden');
-    
-    // 停止掃描器
-    if (html5QrcodeScanner) {
-        html5QrcodeScanner.clear();
-        html5QrcodeScanner = null;
-    }
-    
-    // 重置表單
-    barcodeForm.reset();
-    scanResult.classList.add('hidden');
-    
-    // 移除導航項目的 active 狀態
-    navItems.forEach(item => item.classList.remove('active'));
-    // 設置官方資料頁面為活動狀態
-    document.querySelector('[data-page="official"]').classList.add('active');
-    
-    // 重新載入條碼列表
-    loadBarcodes();
-});
-
-// 處理漢堡選單
-const menuToggle = document.querySelector('.menu-toggle');
-
-menuToggle.addEventListener('click', () => {
-    sidebar.classList.toggle('active');
-});
-
-// 點擊主要內容區域時關閉側邊欄
-document.querySelector('.main-content').addEventListener('click', () => {
-    if (window.innerWidth <= 768) {
-        sidebar.classList.remove('active');
-    }
-});
+// 獲取 DOM 元素
+const overlay = document.querySelector('.overlay');
 
 // 處理視窗大小改變
 window.addEventListener('resize', () => {
     if (window.innerWidth > 768) {
-        sidebar.classList.remove('active');
+        overlay.classList.remove('active');
     }
+});
+
+// 點擊遮罩層關閉選單
+overlay.addEventListener('click', () => {
+    sidebar.classList.add('collapsed');
+    mainContent.classList.add('expanded');
+    overlay.classList.remove('active');
+});
+
+// 點擊側邊欄內部不關閉
+sidebar.addEventListener('click', (e) => {
+    e.stopPropagation();
 }); 
