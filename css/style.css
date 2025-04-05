@@ -991,6 +991,7 @@ body {
     padding: 0;
     margin: 0;
     margin-left: var(--sidebar-width);
+    position: relative;
 }
 
 .page-content.hidden {
@@ -1006,6 +1007,8 @@ body {
     position: relative;
     padding: 0;
     margin-top: 0;
+    height: 100vh;
+    overflow-y: auto;
 }
 
 .local-data-header {
@@ -1014,12 +1017,13 @@ body {
     align-items: center;
     padding: 1rem;
     background: white;
-    border-radius: 8px;
+    border-radius: 0;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: var(--sidebar-width);
+    right: 0;
     z-index: 100;
-    margin-bottom: 1rem;
 }
 
 .local-data-actions {
@@ -1033,7 +1037,9 @@ body {
 }
 
 .local-data-list {
-    padding-top: 0.5rem;
+    padding-top: calc(60px + 1rem); /* header 高度 + 間距 */
+    padding-left: 1rem;
+    padding-right: 1rem;
 }
 
 .local-data-item {
