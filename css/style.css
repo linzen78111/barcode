@@ -653,4 +653,136 @@ body {
 
 .btn-back .icon {
     font-size: 1.2rem;
+}
+
+/* 基礎響應式設計 */
+@media screen and (max-width: 768px) {
+    /* 側邊欄樣式 */
+    .sidebar {
+        position: fixed;
+        left: -250px;
+        top: 0;
+        height: 100%;
+        width: 250px;
+        z-index: 1000;
+        transition: left 0.3s ease;
+    }
+
+    .sidebar.active {
+        left: 0;
+    }
+
+    /* 漢堡選單按鈕 */
+    .menu-toggle {
+        display: block;
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 1001;
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: var(--primary-color);
+        cursor: pointer;
+        padding: 0.5rem;
+    }
+
+    /* 主要內容區域 */
+    .main-content {
+        margin-left: 0;
+        padding: 1rem;
+        padding-top: 4rem;
+    }
+
+    /* 搜尋欄位 */
+    .search-bar {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .search-input {
+        width: 100%;
+    }
+
+    .store-select {
+        width: 100%;
+    }
+
+    /* 條碼列表 */
+    .barcode-item {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .barcode-info {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    /* 掃描介面 */
+    #reader {
+        width: 100% !important;
+        height: auto !important;
+    }
+
+    /* 表單元素 */
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+        width: 100%;
+        font-size: 16px; /* 防止 iOS 自動縮放 */
+        padding: 0.75rem;
+    }
+
+    /* 按鈕樣式 */
+    button {
+        min-height: 44px; /* 觸控友善的最小高度 */
+        padding: 0.75rem 1rem;
+    }
+
+    /* 彈出視窗 */
+    .modal-content {
+        width: 90%;
+        max-height: 80vh;
+        margin: 10vh auto;
+        padding: 1rem;
+    }
+
+    /* 標籤按鈕 */
+    .tab-buttons {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .tab-button {
+        flex: 1 1 auto;
+        text-align: center;
+        white-space: nowrap;
+    }
+}
+
+/* 觸控優化 */
+@media (hover: none) {
+    /* 所有可點擊元素的最小點擊區域 */
+    button,
+    .nav-item,
+    .tab-button,
+    .btn-delete,
+    .store-select {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0.75rem;
+    }
+
+    /* 增加元素間距，防止誤觸 */
+    .barcode-items {
+        gap: 1rem;
+    }
+
+    /* 增加表單元素的可點擊區域 */
+    input,
+    select {
+        min-height: 44px;
+    }
 } 

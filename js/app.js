@@ -905,4 +905,25 @@ document.querySelector('.btn-back').addEventListener('click', () => {
     
     // 重新載入條碼列表
     loadBarcodes();
+});
+
+// 處理漢堡選單
+const menuToggle = document.querySelector('.menu-toggle');
+
+menuToggle.addEventListener('click', () => {
+    sidebar.classList.toggle('active');
+});
+
+// 點擊主要內容區域時關閉側邊欄
+document.querySelector('.main-content').addEventListener('click', () => {
+    if (window.innerWidth <= 768) {
+        sidebar.classList.remove('active');
+    }
+});
+
+// 處理視窗大小改變
+window.addEventListener('resize', () => {
+    if (window.innerWidth > 768) {
+        sidebar.classList.remove('active');
+    }
 }); 
