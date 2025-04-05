@@ -1047,4 +1047,26 @@ body {
     .local-data-header {
         left: 0;
     }
+}
+
+.menu-toggle {
+    padding: 8px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 1.5rem;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 1001;
+    display: block;
+}
+
+.menu-toggle:hover {
+    opacity: 0.8;
+}
+
+/* 隱藏內容區域的小漢堡按鈕 */
+.btn-toggle {
+    display: none;
 } 
