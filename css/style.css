@@ -98,6 +98,9 @@ body {
 
 .nav-menu {
     margin-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .nav-item {
@@ -110,6 +113,7 @@ body {
     background: none;
     cursor: pointer;
     transition: background-color 0.3s;
+    border-radius: 4px;
 }
 
 .nav-item:hover {
@@ -122,7 +126,8 @@ body {
 }
 
 .btn-logout {
-    padding: 0.5rem 1rem;
+    width: 100%;
+    padding: 12px;
     border: none;
     border-radius: 4px;
     background-color: #ff4444;
@@ -132,6 +137,7 @@ body {
     align-items: center;
     gap: 0.5rem;
     transition: background-color 0.2s;
+    margin-top: 0.5rem;
 }
 
 .btn-logout:hover {

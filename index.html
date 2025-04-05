@@ -19,7 +19,7 @@
             <!-- 登入頁面 -->
             <div id="loginPage" class="page">
                 <div class="login-container">
-                    <h1>歡迎使用條碼掃描系統</h1>
+                    <h1>歡迎使用</h1>
                     <button id="googleLoginBtn" class="btn-google">
                         <img src="assets/google-icon.svg" alt="Google Logo">
                         使用 Google 帳號登入
@@ -44,11 +44,11 @@
                         </button>
                         <button class="nav-item" data-page="personal">
                             <i class="fas fa-user"></i>
-                            個人紀錄
+                            個人資料
                         </button>
                         <button class="nav-item" data-page="scan">
                             <i class="fas fa-barcode"></i>
-                            開始掃描
+                            相機掃描（不推薦）
                         </button>
                         <button class="nav-item" data-page="manual">
                             <i class="fas fa-edit"></i>
@@ -56,7 +56,11 @@
                         </button>
                         <button id="uploadButton" class="nav-item hidden" data-page="upload">
                             <i class="fas fa-upload"></i>
-                            批量上傳
+                            送信
+                        </button>
+                        <button id="logoutBtn" class="btn-logout">
+                            <span class="icon">🚪</span>
+                            登出
                         </button>
                     </nav>
                 </aside>
@@ -76,10 +80,6 @@
                                 <option value="ok">OK超商</option>
                             </select>
                         </div>
-                        <button id="logoutBtn" class="btn-logout">
-                            <span class="icon">🚪</span>
-                            登出
-                        </button>
                     </div>
 
                     <!-- 資料列表 -->
@@ -156,7 +156,7 @@
                             <i class="fas fa-plus"></i> 新增條碼
                         </button>
                         <button id="uploadLocalDataBtn" class="btn-primary">
-                            <i class="fas fa-upload"></i> 上傳全部
+                            <i class="fas fa-upload"></i> 全部送信
                         </button>
                     </div>
                 </div>
