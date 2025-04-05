@@ -103,17 +103,20 @@ body {
     gap: 0.5rem;
 }
 
-.nav-item {
+.nav-item, .btn-logout {
     display: flex;
     align-items: center;
     gap: 10px;
     width: 100%;
     padding: 12px;
     border: none;
-    background: none;
     cursor: pointer;
     transition: background-color 0.3s;
     border-radius: 4px;
+}
+
+.nav-item {
+    background: none;
 }
 
 .nav-item:hover {
@@ -126,18 +129,9 @@ body {
 }
 
 .btn-logout {
-    width: 100%;
-    padding: 12px;
-    border: none;
-    border-radius: 4px;
     background-color: #ff4444;
     color: white;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: background-color 0.2s;
-    margin-top: 0.5rem;
+    margin-top: 0;
 }
 
 .btn-logout:hover {
