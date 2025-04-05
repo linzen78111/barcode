@@ -369,6 +369,29 @@ body {
     z-index: 100;
 }
 
+.local-data-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.btn-back {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.btn-back:hover {
+    background-color: #5a6268;
+}
+
 .local-data-actions {
     display: flex;
     gap: 1rem;
@@ -988,12 +1011,10 @@ body {
     align-items: center;
     padding: 1rem;
     background: white;
-    border-radius: 0;
+    border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    position: fixed;
+    position: sticky;
     top: 0;
-    left: var(--sidebar-width);
-    right: 0;
     z-index: 100;
 }
 
