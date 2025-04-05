@@ -14,12 +14,15 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
+    <!-- 漢堡選單按鈕 -->
+    <button class="menu-toggle">☰</button>
+
     <div class="layout">
         <div id="app">
             <!-- 登入頁面 -->
             <div id="loginPage" class="page">
                 <div class="login-container">
-                    <h1>歡迎使用</h1>
+                    <h1>歡迎使用條碼掃描系統</h1>
                     <button id="googleLoginBtn" class="btn-google">
                         <img src="assets/google-icon.svg" alt="Google Logo">
                         使用 Google 帳號登入
@@ -44,11 +47,11 @@
                         </button>
                         <button class="nav-item" data-page="personal">
                             <i class="fas fa-user"></i>
-                            個人資料
+                            個人紀錄
                         </button>
                         <button class="nav-item" data-page="scan">
                             <i class="fas fa-barcode"></i>
-                            相機掃描（不推薦）
+                            開始掃描
                         </button>
                         <button class="nav-item" data-page="manual">
                             <i class="fas fa-edit"></i>
@@ -56,13 +59,13 @@
                         </button>
                         <button id="uploadButton" class="nav-item hidden" data-page="upload">
                             <i class="fas fa-upload"></i>
-                            送信
-                        </button>
-                        <button id="logoutBtn" class="btn-logout">
-                            <span class="icon">🚪</span>
-                            登出
+                            批量上傳
                         </button>
                     </nav>
+                    <button id="logoutBtn" class="btn-logout">
+                        <span class="icon">🚪</span>
+                        登出
+                    </button>
                 </aside>
 
                 <!-- 主要內容區 -->
@@ -156,7 +159,7 @@
                             <i class="fas fa-plus"></i> 新增條碼
                         </button>
                         <button id="uploadLocalDataBtn" class="btn-primary">
-                            <i class="fas fa-upload"></i> 全部送信
+                            <i class="fas fa-upload"></i> 上傳全部
                         </button>
                     </div>
                 </div>
