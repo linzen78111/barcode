@@ -455,61 +455,40 @@ function showBarcodeDetails(barcode) {
     });
 }
 
-// 側邊欄切換
-function toggleSidebar() {
-    console.log('切換側邊欄');
-    const overlay = document.getElementById('overlay');
-    sidebar.classList.toggle('active');
-    mainContent.classList.toggle('sidebar-active');
-    overlay.classList.toggle('active');
-}
-
-// 點擊漢堡選單按鈕
-menuToggleBtn.addEventListener('click', (e) => {
-    console.log('點擊漢堡選單按鈕');
-    e.stopPropagation();  // 防止事件冒泡
-    toggleSidebar();
-});
-
-// 點擊遮罩層關閉選單
-document.getElementById('overlay').addEventListener('click', () => {
-    console.log('點擊遮罩層');
-    if (sidebar.classList.contains('active')) {
-        toggleSidebar();
-    }
-});
-
-// 點擊側邊欄內部不關閉
-sidebar.addEventListener('click', (e) => {
-    console.log('點擊側邊欄');
-    e.stopPropagation();
-});
-
-// 點擊文件任何地方關閉選單
-document.addEventListener('click', (e) => {
-    console.log('點擊文件');
-    // 如果點擊的不是側邊欄或漢堡選單按鈕，且側邊欄是開啟狀態
-    if (!sidebar.contains(e.target) && 
-        !menuToggleBtn.contains(e.target) && 
-        sidebar.classList.contains('active')) {
-        toggleSidebar();
-    }
-});
-
-// 處理視窗大小改變
-window.addEventListener('resize', () => {
-    console.log('視窗大小改變');
-    if (window.innerWidth > 768) {
-        sidebar.classList.remove('active');
-        mainContent.classList.remove('sidebar-active');
-        document.getElementById('overlay').classList.remove('active');
-    }
-});
-
 // 初始化事件監聽
 document.addEventListener('DOMContentLoaded', () => {
     // 漢堡選單點擊事件
-    menuToggleBtn.addEventListener('click', toggleSidebar);
+    const menuToggleBtn = document.getElementById('menuToggle');
+    const sidebar = document.querySelector('.sidebar');
+    const mainContent = document.querySelector('.main-content');
+
+    function toggleSidebar() {
+        sidebar.classList.toggle('active');
+        mainContent.classList.toggle('sidebar-active');
+    }
+
+    menuToggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();  // 防止事件冒泡
+        toggleSidebar();
+    });
+
+    // 點擊文件任何地方關閉選單
+    document.addEventListener('click', (e) => {
+        // 如果點擊的不是側邊欄或漢堡選單按鈕，且側邊欄是開啟狀態
+        if (!sidebar.contains(e.target) && 
+            !menuToggleBtn.contains(e.target) && 
+            sidebar.classList.contains('active')) {
+            toggleSidebar();
+        }
+    });
+
+    // 處理視窗大小改變
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 768) {
+            sidebar.classList.remove('active');
+            mainContent.classList.remove('sidebar-active');
+        }
+    });
     
     // 開發者公告按鈕點擊事件
     const showAnnouncementBtn = document.getElementById('showAnnouncementBtn');
@@ -528,8 +507,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 初始化公告功能
     initializeAnnouncement();
-    
-    // 其他初始化...
 });
 
 searchInput.addEventListener('input', () => {
