@@ -459,7 +459,45 @@ function showBarcodeDetails(barcode) {
 function toggleSidebar() {
     sidebar.classList.toggle('active');
     mainContent.classList.toggle('sidebar-active');
+    overlay.classList.toggle('active');  // 切換遮罩層
 }
+
+// 點擊遮罩層關閉選單
+overlay.addEventListener('click', () => {
+    sidebar.classList.remove('active');
+    mainContent.classList.remove('sidebar-active');
+    overlay.classList.remove('active');
+});
+
+// 點擊側邊欄內部不關閉
+sidebar.addEventListener('click', (e) => {
+    e.stopPropagation();
+});
+
+// 點擊漢堡選單按鈕
+menuToggleBtn.addEventListener('click', (e) => {
+    e.stopPropagation();  // 防止事件冒泡
+    toggleSidebar();
+});
+
+// 點擊文件任何地方關閉選單
+document.addEventListener('click', (e) => {
+    // 如果點擊的不是側邊欄或漢堡選單按鈕，且側邊欄是開啟狀態
+    if (!sidebar.contains(e.target) && 
+        !menuToggleBtn.contains(e.target) && 
+        sidebar.classList.contains('active')) {
+        toggleSidebar();
+    }
+});
+
+// 處理視窗大小改變
+window.addEventListener('resize', () => {
+    if (window.innerWidth > 768) {
+        sidebar.classList.remove('active');
+        mainContent.classList.remove('sidebar-active');
+        overlay.classList.remove('active');
+    }
+});
 
 // 初始化事件監聽
 document.addEventListener('DOMContentLoaded', () => {
@@ -773,28 +811,6 @@ function updateUploadPreview() {
 async function checkAndShowUploadButton() {
     uploadButton.classList.remove('hidden');
 }
-
-// 獲取 DOM 元素
-const overlay = document.querySelector('.overlay');
-
-// 處理視窗大小改變
-window.addEventListener('resize', () => {
-    if (window.innerWidth > 768) {
-        overlay.classList.remove('active');
-    }
-});
-
-// 點擊遮罩層關閉選單
-overlay.addEventListener('click', () => {
-    sidebar.classList.add('collapsed');
-    mainContent.classList.add('expanded');
-    overlay.classList.remove('active');
-});
-
-// 點擊側邊欄內部不關閉
-sidebar.addEventListener('click', (e) => {
-    e.stopPropagation();
-});
 
 // 本地暫存的條碼資料
 let localBarcodes = [];
