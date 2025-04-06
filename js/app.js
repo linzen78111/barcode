@@ -979,9 +979,6 @@ async function initializeData() {
 }
 
 // 開發者公告功能
-let isEditing = false;
-
-// 顯示公告
 async function showAnnouncement() {
     try {
         const user = firebase.auth().currentUser;
@@ -1047,12 +1044,12 @@ async function showAnnouncement() {
             console.log('啟用編輯模式');
             announcementContent.contentEditable = true;
             announcementContent.classList.add('editable');
-            isEditing = true;
+            announcementContent.dataset.isEditing = 'true';
         } else {
             console.log('設置為唯讀模式');
             announcementContent.contentEditable = false;
             announcementContent.classList.remove('editable');
-            isEditing = false;
+            announcementContent.dataset.isEditing = 'false';
         }
 
         // 顯示公告
@@ -1080,6 +1077,11 @@ async function initializeAnnouncement() {
     console.log('關閉按鈕存在:', !!closeButton);
     console.log('公告視窗存在:', !!announcementModal);
 
+    // 初始化編輯狀態
+    if (announcementContent) {
+        announcementContent.dataset.isEditing = 'false';
+    }
+
     // 關閉按鈕事件
     if (closeButton) {
         closeButton.onclick = async () => {
@@ -1095,7 +1097,7 @@ async function initializeAnnouncement() {
             console.log('關閉時檢查 - 是否為官方帳號:', isOfficial);
 
             // 只有官方帳號可以儲存修改
-            if (isOfficial && isEditing) {
+            if (isOfficial && announcementContent.dataset.isEditing === 'true') {
                 try {
                     await barcodeService.db.collection('official').doc('announcement').set({
                         content: announcementContent.innerHTML,
@@ -1124,7 +1126,7 @@ async function initializeAnnouncement() {
             if (announcementContent) {
                 announcementContent.contentEditable = false;
                 announcementContent.classList.remove('editable');
-                isEditing = false;
+                announcementContent.dataset.isEditing = 'false';
                 console.log('編輯狀態已重置');
             }
 
@@ -1169,7 +1171,7 @@ async function initializeAnnouncement() {
             if (announcementContent) {
                 announcementContent.contentEditable = false;
                 announcementContent.classList.remove('editable');
-                isEditing = false;
+                announcementContent.dataset.isEditing = 'false';
             }
         };
         console.log('遮罩層事件已綁定');
