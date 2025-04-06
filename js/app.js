@@ -1352,34 +1352,49 @@ async function handleLoginSuccess(user) {
 // Google 登入
 async function googleLogin() {
     try {
-        const provider = new firebase.auth.GoogleAuthProvider();
+        console.log("開始 Google 登入流程");
         
-        // 檢查是否為 PWA 模式
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-            console.log('PWA 模式：使用特殊處理');
-            // 設定登入選項
-            provider.setCustomParameters({
-                prompt: 'select_account',
-                // 強制在同一個視窗中開啟
-                display: 'popup'
-            });
-            
-            // 使用 signInWithRedirect，但指定重定向 URL 為當前頁面
-            const redirectUrl = window.location.href;
-            firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-                .then(() => {
-                    return firebase.auth().signInWithRedirect(provider);
-                });
-        } else {
-            console.log('瀏覽器模式：使用一般登入');
-            const result = await firebase.auth().signInWithPopup(provider);
-            if (result.user) {
-                await handleLoginSuccess(result.user);
-            }
+        // 檢查是否在 PWA 模式
+        const isPWA = window.matchMedia('(display-mode: standalone)').matches;
+        console.log("是否為 PWA 模式:", isPWA);
+
+        if (isPWA) {
+            // 在 PWA 模式下，跳轉到瀏覽器進行登入
+            console.log("PWA 模式：跳轉到瀏覽器進行登入");
+            const currentURL = window.location.href;
+            const loginURL = `${currentURL}?login=true`;
+            window.location.href = loginURL;
+            return;
         }
+
+        // 檢查 URL 參數是否包含 login=true
+        const urlParams = new URLSearchParams(window.location.search);
+        const isLoginRedirect = urlParams.get('login') === 'true';
+
+        if (isLoginRedirect) {
+            console.log("從 PWA 跳轉過來：執行登入流程");
+            // 移除 URL 參數
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        // 正常的登入流程
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.addScope('profile');
+        provider.addScope('email');
+        
+        const result = await firebase.auth().signInWithPopup(provider);
+        console.log("登入成功");
+        
+        if (isLoginRedirect) {
+            // 如果是從 PWA 跳轉來的，登入成功後跳回 PWA
+            console.log("跳轉回 PWA");
+            window.location.href = window.location.origin;
+        }
+        
+        handleLoginSuccess(result.user);
     } catch (error) {
-        console.error('Google 登入失敗:', error);
-        alert('登入失敗：' + error.message);
+        console.error("登入錯誤:", error);
+        alert("登入失敗：" + error.message);
     }
 }
 
