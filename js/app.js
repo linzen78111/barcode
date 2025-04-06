@@ -1372,26 +1372,32 @@ async function googleLogin() {
     try {
         console.log("開始 Google 登入流程");
         
-        if (isIOSPWA()) {
-            console.log("iOS PWA 環境：使用外部瀏覽器登入");
-            // 儲存目前的路徑到 localStorage
-            localStorage.setItem('loginRedirectPath', window.location.pathname);
-            // 使用 window.location.href 跳轉到外部瀏覽器
-            window.location.href = generateLoginURL();
-            return;
-        }
-
-        // 非 iOS PWA 環境：使用一般登入流程
         const provider = new firebase.auth.GoogleAuthProvider();
         provider.addScope('profile');
         provider.addScope('email');
 
+        // 設定登入選項
         const auth = firebase.auth();
         await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-        // 一般環境使用 redirect 方式
-        console.log("一般環境：使用重定向登入");
-        await auth.signInWithRedirect(provider);
+        // 檢查是否為 iOS PWA
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                     window.navigator.standalone;
+        
+        if (isIOS && isPWA) {
+            console.log("iOS PWA 環境：使用 signInWithRedirect");
+            // 在 iOS PWA 環境下使用 redirect 方式
+            await auth.signInWithRedirect(provider);
+        } else {
+            console.log("一般環境：使用 signInWithPopup");
+            // 在其他環境下使用 popup 方式
+            const result = await auth.signInWithPopup(provider);
+            if (result.user) {
+                console.log("登入成功");
+                await handleLoginSuccess(result.user);
+            }
+        }
     } catch (error) {
         console.error("登入錯誤:", error);
         alert("登入失敗：" + error.message);
@@ -1403,29 +1409,8 @@ async function checkRedirectResult() {
     try {
         console.log("檢查登入重定向結果");
         const auth = firebase.auth();
-        
-        // 檢查是否有來自外部瀏覽器的登入
-        const params = new URLSearchParams(window.location.search);
-        const isLoginRedirect = params.get('login_success') === 'true';
-        
-        if (isLoginRedirect) {
-            console.log("檢測到外部瀏覽器登入成功");
-            // 清除 URL 參數
-            window.history.replaceState({}, document.title, window.location.pathname);
-            
-            // 取得儲存的路徑
-            const redirectPath = localStorage.getItem('loginRedirectPath') || '/';
-            localStorage.removeItem('loginRedirectPath');
-            
-            // 如果當前不在目標路徑，進行跳轉
-            if (window.location.pathname !== redirectPath) {
-                window.location.href = redirectPath;
-                return;
-            }
-        }
-
-        // 處理一般的重定向結果
         const result = await auth.getRedirectResult();
+        
         if (result.user) {
             console.log("重定向登入成功");
             await handleLoginSuccess(result.user);
