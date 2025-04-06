@@ -1369,9 +1369,32 @@ async function googleLogin() {
 
         let result;
         if (isPWA) {
-            console.log("PWA 模式：使用彈出視窗登入");
-            // 在 PWA 模式下使用彈出視窗
-            result = await auth.signInWithPopup(provider);
+            console.log("PWA 模式：使用預先開啟的彈出視窗");
+            // 同步開啟一個空白視窗
+            const popupWindow = window.open('about:blank', '_blank', 'width=600,height=800');
+            if (!popupWindow) {
+                throw new Error('彈出視窗被阻擋，請允許彈出視窗以完成登入');
+            }
+
+            // 設定彈出視窗選項
+            provider.setCustomParameters({
+                prompt: 'select_account'
+            });
+
+            try {
+                // 使用預先開啟的視窗進行 OAuth 登入
+                result = await auth.signInWithPopup(provider);
+                // 登入成功後關閉彈出視窗
+                if (popupWindow && !popupWindow.closed) {
+                    popupWindow.close();
+                }
+            } catch (error) {
+                // 發生錯誤時關閉彈出視窗
+                if (popupWindow && !popupWindow.closed) {
+                    popupWindow.close();
+                }
+                throw error;
+            }
         } else {
             console.log("瀏覽器模式：一般登入流程");
             result = await auth.signInWithPopup(provider);
