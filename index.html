@@ -193,43 +193,14 @@
             <div id="uploadModal" class="modal">
                 <div class="modal-content">
                     <h2>確認上傳</h2>
+                    <p>是否要將本地暫存的條碼資料上傳至資料庫？</p>
                     <div class="upload-preview">
                         <div class="local-data-summary">
-                            即將上傳 <span id="uploadCount">0</span> 筆資料
-                        </div>
-                        <div class="local-data-list-preview">
-                            <!-- 預覽資料會動態插入這裡 -->
+                            共有 <span id="uploadCount">0</span> 筆資料待上傳
                         </div>
                     </div>
                     <div class="form-actions">
                         <button class="btn-upload">確認上傳</button>
-                        <button class="btn-cancel">取消</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 修改：上傳對話框改為匯入對話框 -->
-            <div id="importModal" class="modal hidden">
-                <div class="modal-content">
-                    <h2>匯入條碼資料</h2>
-                    <div class="upload-area">
-                        <input type="file" id="fileInput" accept=".csv,.xlsx" class="hidden">
-                        <div class="drop-zone" id="dropZone">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48">
-                                <path fill="none" d="M0 0h24v24H0z"/>
-                                <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
-                            </svg>
-                            <p>拖放檔案至此或點擊選擇檔案</p>
-                            <p class="file-hint">支援的格式：CSV、Excel</p>
-                            <p class="file-hint">注意：資料將根據您的帳號類型儲存到對應的資料庫中</p>
-                        </div>
-                    </div>
-                    <div class="upload-preview hidden">
-                        <h3>預覽資料</h3>
-                        <div class="preview-table"></div>
-                    </div>
-                    <div class="modal-buttons">
-                        <button class="btn-upload" disabled>上傳</button>
                         <button class="btn-cancel">取消</button>
                     </div>
                 </div>

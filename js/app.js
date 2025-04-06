@@ -815,76 +815,67 @@ function showPreview(data) {
     previewArea.classList.remove('hidden');
 }
 
-// 上傳按鈕點擊事件
-btnUpload.addEventListener('click', async () => {
-    console.log('點擊批量上傳按鈕');
-    try {
-        const fileData = await readFile(fileInput.files[0]);
-        console.log('檔案資料:', fileData);
-        
-        if (!fileData || fileData.length === 0) {
-            alert('沒有可上傳的資料！');
-            return;
-        }
+// 更新上傳預覽
+function updateUploadPreview() {
+    const uploadCount = document.getElementById('uploadCount');
+    uploadCount.textContent = localBarcodes.length;
+}
 
-        await barcodeService.bulkUploadBarcodes(fileData);
-        alert('上傳成功！');
-        uploadModal.classList.add('hidden');
-        loadBarcodes(); // 重新載入主頁面資料
+// 處理上傳確認
+document.querySelector('.btn-upload').addEventListener('click', async () => {
+    try {
+        // 顯示載入中提示
+        document.querySelector('.btn-upload').disabled = true;
+        document.querySelector('.btn-upload').textContent = '上傳中...';
         
-        // 清理預覽區域和檔案輸入
-        previewArea.classList.add('hidden');
-        previewTable.innerHTML = '';
-        fileInput.value = '';
-        btnUpload.disabled = true;
+        // 上傳資料到 Firestore
+        for (const barcode of localBarcodes) {
+            await barcodeService.saveBarcode(barcode);
+        }
+        
+        // 清空本地暫存
+        localBarcodes = [];
+        updateLocalDataList();
+        
+        // 關閉對話框
+        document.getElementById('uploadModal').classList.add('hidden');
+        
+        // 顯示成功訊息
+        alert('上傳成功！');
+        
+        // 重新載入資料
+        loadBarcodes();
     } catch (error) {
         console.error('上傳失敗:', error);
         alert('上傳失敗：' + error.message);
+    } finally {
+        // 重設按鈕狀態
+        document.querySelector('.btn-upload').disabled = false;
+        document.querySelector('.btn-upload').textContent = '確認上傳';
     }
 });
 
-// 檔案輸入變更事件
-fileInput.addEventListener('change', async (e) => {
-    console.log('選擇檔案');
-    const file = e.target.files[0];
-    if (file) {
-        try {
-            const data = await readFile(file);
-            showPreview(data);
-            btnUpload.disabled = false;
-        } catch (error) {
-            console.error('讀取檔案失敗:', error);
-            alert('讀取檔案失敗：' + error.message);
-            fileInput.value = '';
-            btnUpload.disabled = true;
-        }
+// 獲取 DOM 元素
+const overlay = document.querySelector('.overlay');
+
+// 處理視窗大小改變
+window.addEventListener('resize', () => {
+    if (window.innerWidth > 768) {
+        overlay.classList.remove('active');
     }
 });
 
-// 初始化
-document.addEventListener('DOMContentLoaded', () => {
-    initializeDropZone();
-    checkAndShowUploadButton();
-    
-    // 確保側邊欄初始狀態為收合
+// 點擊遮罩層關閉選單
+overlay.addEventListener('click', () => {
     sidebar.classList.add('collapsed');
     mainContent.classList.add('expanded');
+    overlay.classList.remove('active');
 });
 
-// 初始化資料
-async function initializeData() {
-    try {
-        // 預設顯示官方資料頁面
-        const officialTab = document.querySelector('[data-page="official"]');
-        if (officialTab) {
-            officialTab.classList.add('active');
-        }
-        await loadBarcodes();
-    } catch (error) {
-        console.error('初始化失敗:', error);
-        alert('資料載入失敗，請重新整理頁面');
-    }
-}
+// 點擊側邊欄內部不關閉
+sidebar.addEventListener('click', (e) => {
+    e.stopPropagation();
+});
 
 // 本地暫存的條碼資料
 let localBarcodes = [];
@@ -1043,93 +1034,27 @@ uploadLocalDataBtn.addEventListener('click', () => {
     document.getElementById('localDataPage').classList.remove('hidden');
 });
 
-// 更新上傳預覽
-function updateUploadPreview() {
-    console.log('更新上傳預覽');
-    const uploadCount = document.getElementById('uploadCount');
-    const previewList = document.querySelector('.local-data-list-preview');
+// 初始化
+document.addEventListener('DOMContentLoaded', () => {
+    initializeDropZone();
+    checkAndShowUploadButton();
     
-    if (!uploadCount || !previewList) {
-        console.error('找不到必要的 DOM 元素');
-        return;
-    }
-    
-    // 更新數量
-    uploadCount.textContent = localBarcodes.length;
-    
-    // 更新預覽列表
-    previewList.innerHTML = '';
-    
-    localBarcodes.forEach((barcode, index) => {
-        const item = document.createElement('div');
-        item.className = 'preview-item';
-        item.innerHTML = `
-            <div class="preview-info">
-                <h4>${barcode.name || '未命名商品'}</h4>
-                <p>條碼: ${barcode.code || '無'}</p>
-                <p>價格: $${barcode.price || 0}</p>
-                <p>商店: ${barcode.store || '未知'}</p>
-                ${barcode.description ? `<p>描述: ${barcode.description}</p>` : ''}
-            </div>
-        `;
-        previewList.appendChild(item);
-    });
-}
-
-// 上傳確認對話框的確定按鈕
-document.querySelector('#uploadModal .btn-upload').addEventListener('click', async () => {
-    console.log('確認上傳');
-    try {
-        console.log('開始上傳本地暫存資料...');
-        for (const barcode of localBarcodes) {
-            console.log('上傳條碼:', barcode);
-            await barcodeService.saveBarcode({
-                ...barcode,
-                createdAt: firebase.firestore.Timestamp.now(),
-                updatedAt: firebase.firestore.Timestamp.now()
-            });
-        }
-
-        alert('上傳成功！');
-        localBarcodes = []; // 清空本地暫存
-        updateLocalDataList(); // 更新本地暫存列表顯示
-        loadBarcodes(); // 重新載入主頁面資料
-        
-        // 隱藏上傳確認對話框
-        uploadModal.classList.add('hidden');
-        
-        // 返回主頁面
-        document.querySelector('[data-page="official"]').click();
-    } catch (error) {
-        console.error('上傳失敗:', error);
-        alert('上傳失敗：' + error.message);
-    }
-});
-
-// 上傳確認對話框的取消按鈕
-document.querySelector('#uploadModal .btn-cancel').addEventListener('click', () => {
-    console.log('取消上傳');
-    uploadModal.classList.add('hidden');
-});
-
-// 獲取 DOM 元素
-const overlay = document.querySelector('.overlay');
-
-// 處理視窗大小改變
-window.addEventListener('resize', () => {
-    if (window.innerWidth > 768) {
-        overlay.classList.remove('active');
-    }
-});
-
-// 點擊遮罩層關閉選單
-overlay.addEventListener('click', () => {
+    // 確保側邊欄初始狀態為收合
     sidebar.classList.add('collapsed');
     mainContent.classList.add('expanded');
-    overlay.classList.remove('active');
 });
 
-// 點擊側邊欄內部不關閉
-sidebar.addEventListener('click', (e) => {
-    e.stopPropagation();
-}); 
+// 初始化資料
+async function initializeData() {
+    try {
+        // 預設顯示官方資料頁面
+        const officialTab = document.querySelector('[data-page="official"]');
+        if (officialTab) {
+            officialTab.classList.add('active');
+        }
+        await loadBarcodes();
+    } catch (error) {
+        console.error('初始化失敗:', error);
+        alert('資料載入失敗，請重新整理頁面');
+    }
+} 
