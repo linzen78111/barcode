@@ -1371,20 +1371,6 @@ function getExternalLoginUrl() {
 async function googleLogin() {
     try {
         console.log("開始 Google 登入流程");
-        
-        // 檢查是否為 iOS PWA
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                     window.navigator.standalone;
-        
-        if (isIOS && isPWA) {
-            console.log("iOS PWA 環境：使用外部瀏覽器登入");
-            // 直接開啟外部瀏覽器進行登入
-            window.location.href = window.location.origin;
-            return;
-        }
-
-        console.log("一般環境：使用 Firebase 登入");
         const provider = new firebase.auth.GoogleAuthProvider();
         provider.addScope('profile');
         provider.addScope('email');
@@ -1399,8 +1385,8 @@ async function googleLogin() {
         }
     } catch (error) {
         console.error("登入錯誤:", error);
+        // 如果彈出視窗被阻擋，嘗試使用重定向
         if (error.code === 'auth/popup-blocked') {
-            // 如果彈出視窗被阻擋，嘗試使用重定向
             console.log("彈出視窗被阻擋，嘗試使用重定向");
             const auth = firebase.auth();
             const provider = new firebase.auth.GoogleAuthProvider();
@@ -1420,8 +1406,25 @@ window.addEventListener('load', async () => {
             console.log("重定向登入成功");
             await handleLoginSuccess(result.user);
         }
+
+        // 請求全螢幕
+        const requestFullscreen = () => {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('全螢幕請求被拒絕:', err);
+                });
+            }
+        };
+
+        // 監聽螢幕方向變化
+        window.addEventListener('orientationchange', () => {
+            setTimeout(requestFullscreen, 300);
+        });
+
+        // 初次載入時請求全螢幕
+        requestFullscreen();
     } catch (error) {
-        console.error("處理重定向結果錯誤:", error);
+        console.error("處理登入狀態時發生錯誤:", error);
     }
 });
 
@@ -1439,7 +1442,6 @@ firebase.auth().onAuthStateChanged(async (user) => {
     if (user) {
         await handleLoginSuccess(user);
     } else {
-        // 用戶未登入
         document.getElementById('loginPage').classList.remove('hidden');
         document.getElementById('mainPage').classList.add('hidden');
     }
