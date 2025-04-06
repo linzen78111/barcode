@@ -75,16 +75,6 @@ class BarcodeData {
 const barcodeService = {
     db: firebase.firestore(),
     
-    // 檢查是否為官方帳號
-    async isOfficialAccount() {
-        const user = firebase.auth().currentUser;
-        if (!user) return false;
-        
-        // 指定官方帳號的 email
-        const officialEmail = 'apple0902303636@gmail.com';
-        return user.email === officialEmail;
-    },
-    
     // 載入條碼資料
     async loadBarcodes() {
         try {
@@ -275,6 +265,16 @@ const barcodeService = {
         } else {
             await this.db.doc(`users/${user.uid}/stores/${store}/barcodes/${code}`).delete();
         }
+    },
+
+    // 檢查是否為官方帳號
+    async isOfficialAccount() {
+        const user = firebase.auth().currentUser;
+        if (!user) return false;
+        
+        // 指定官方帳號的 email
+        const officialEmail = 'apple0902303636@gmail.com';
+        return user.email === officialEmail;
     }
 };
 
@@ -674,7 +674,18 @@ document.querySelector('#manualPage .btn-cancel').addEventListener('click', () =
 
 // 檢查是否為官方帳號並顯示上傳按鈕
 async function checkAndShowUploadButton() {
-    uploadButton.classList.remove('hidden');
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.log('使用者未登入');
+            return;
+        }
+        
+        // 所有登入用戶都可以看到上傳按鈕
+        uploadButton.classList.remove('hidden');
+    } catch (error) {
+        console.error('檢查用戶狀態失敗:', error);
+    }
 }
 
 // 初始化拖放區域
@@ -828,9 +839,44 @@ document.querySelector('.btn-upload').addEventListener('click', async () => {
         document.querySelector('.btn-upload').disabled = true;
         document.querySelector('.btn-upload').textContent = '上傳中...';
         
+        const user = firebase.auth().currentUser;
+        if (!user) throw new Error('請先登入');
+        
+        const isOfficial = await barcodeService.isOfficialAccount();
+        
         // 上傳資料到 Firestore
         for (const barcode of localBarcodes) {
-            await barcodeService.saveBarcode(barcode);
+            const store = barcode.store;
+            let docRef;
+            
+            if (isOfficial) {
+                docRef = barcodeService.db
+                    .collection('official')
+                    .doc('data')
+                    .collection('stores')
+                    .doc(store)
+                    .collection('barcodes')
+                    .doc(barcode.code);
+                    
+                barcode.fromOfficial = true;
+            } else {
+                docRef = barcodeService.db
+                    .collection('users')
+                    .doc(user.uid)
+                    .collection('stores')
+                    .doc(store)
+                    .collection('barcodes')
+                    .doc(barcode.code);
+                    
+                barcode.fromOfficial = false;
+                barcode.user_id = user.uid;
+            }
+            
+            await docRef.set({
+                ...barcode,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
         }
         
         // 清空本地暫存
@@ -839,6 +885,7 @@ document.querySelector('.btn-upload').addEventListener('click', async () => {
         
         // 關閉對話框
         document.getElementById('uploadModal').classList.add('hidden');
+        document.getElementById('uploadModal').style.display = 'none';
         
         // 顯示成功訊息
         alert('上傳成功！');
