@@ -457,31 +457,37 @@ function showBarcodeDetails(barcode) {
 
 // 側邊欄切換
 function toggleSidebar() {
+    console.log('切換側邊欄');
+    const overlay = document.getElementById('overlay');
     sidebar.classList.toggle('active');
     mainContent.classList.toggle('sidebar-active');
-    overlay.classList.toggle('active');  // 切換遮罩層
+    overlay.classList.toggle('active');
 }
-
-// 點擊遮罩層關閉選單
-overlay.addEventListener('click', () => {
-    sidebar.classList.remove('active');
-    mainContent.classList.remove('sidebar-active');
-    overlay.classList.remove('active');
-});
-
-// 點擊側邊欄內部不關閉
-sidebar.addEventListener('click', (e) => {
-    e.stopPropagation();
-});
 
 // 點擊漢堡選單按鈕
 menuToggleBtn.addEventListener('click', (e) => {
+    console.log('點擊漢堡選單按鈕');
     e.stopPropagation();  // 防止事件冒泡
     toggleSidebar();
 });
 
+// 點擊遮罩層關閉選單
+document.getElementById('overlay').addEventListener('click', () => {
+    console.log('點擊遮罩層');
+    if (sidebar.classList.contains('active')) {
+        toggleSidebar();
+    }
+});
+
+// 點擊側邊欄內部不關閉
+sidebar.addEventListener('click', (e) => {
+    console.log('點擊側邊欄');
+    e.stopPropagation();
+});
+
 // 點擊文件任何地方關閉選單
 document.addEventListener('click', (e) => {
+    console.log('點擊文件');
     // 如果點擊的不是側邊欄或漢堡選單按鈕，且側邊欄是開啟狀態
     if (!sidebar.contains(e.target) && 
         !menuToggleBtn.contains(e.target) && 
@@ -492,10 +498,11 @@ document.addEventListener('click', (e) => {
 
 // 處理視窗大小改變
 window.addEventListener('resize', () => {
+    console.log('視窗大小改變');
     if (window.innerWidth > 768) {
         sidebar.classList.remove('active');
         mainContent.classList.remove('sidebar-active');
-        overlay.classList.remove('active');
+        document.getElementById('overlay').classList.remove('active');
     }
 });
 

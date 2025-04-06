@@ -14,6 +14,9 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
+    <!-- 遮罩層 -->
+    <div class="overlay" id="overlay"></div>
+    
     <!-- 開發者公告 -->
     <div class="announcement-overlay" id="announcementOverlay"></div>
     <div id="developerAnnouncement" class="announcement-modal">
@@ -55,8 +58,6 @@
 
             <!-- 主頁面 -->
             <div id="mainPage" class="page hidden">
-                <!-- 遮罩層 -->
-                <div class="overlay"></div>
                 <!-- 側邊欄 -->
                 <aside class="sidebar">
                     <div class="user-info">

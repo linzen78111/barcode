@@ -64,6 +64,25 @@ body {
     height: 20px;
 }
 
+/* 遮罩層 */
+.overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    transition: opacity 0.3s ease;
+    opacity: 0;
+}
+
+.overlay.active {
+    display: block;
+    opacity: 1;
+}
+
 /* 側邊欄 */
 .sidebar {
     position: fixed;
@@ -73,7 +92,7 @@ body {
     height: 100vh;
     background-color: white;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-    transition: left 0.3s ease;
+    transition: all 0.3s ease;
     z-index: 1000;
     padding: 1rem;
 }
@@ -145,10 +164,11 @@ body {
 /* 主要內容區 */
 .main-content {
     margin-left: 0;
-    transition: margin-left 0.3s ease;
+    transition: all 0.3s ease;
     min-height: 100vh;
     background-color: var(--bg-color);
     padding: 1rem;
+    width: 100%;
 }
 
 .main-content.sidebar-active {
@@ -1075,26 +1095,35 @@ body {
 }
 
 .menu-toggle {
-    position: fixed;
-    top: 1rem;
-    left: 1rem;
-    z-index: 1001;
-    padding: 8px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    font-size: 1.5rem;
-    color: var(--text-color);
-    transition: opacity 0.3s;
-}
-
-.menu-toggle:hover {
-    opacity: 0.8;
-}
-
-/* 隱藏內容區域的小漢堡按鈕 */
-.btn-toggle {
     display: none;
+    cursor: pointer;
+    padding: 10px;
+    background: none;
+    border: none;
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 1001;
+}
+
+@media screen and (max-width: 768px) {
+    .menu-toggle {
+        display: block;
+    }
+    
+    .sidebar {
+        left: -100%;
+        width: 80%;
+        max-width: 250px;
+    }
+    
+    .sidebar.active {
+        left: 0;
+    }
+    
+    .main-content.sidebar-active {
+        margin-left: 0;
+    }
 }
 
 /* 開發者公告樣式 */
