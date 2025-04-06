@@ -1358,50 +1358,44 @@ async function googleLogin() {
         const isPWA = window.matchMedia('(display-mode: standalone)').matches;
         console.log("是否為 PWA 模式:", isPWA);
 
-        if (isPWA) {
-            // 在 PWA 模式下，跳轉到瀏覽器進行登入
-            console.log("PWA 模式：跳轉到瀏覽器進行登入");
-            const currentURL = window.location.href;
-            const loginURL = `${currentURL}?login=true`;
-            window.location.href = loginURL;
-            return;
-        }
-
-        // 檢查 URL 參數是否包含 login=true
-        const urlParams = new URLSearchParams(window.location.search);
-        const isLoginRedirect = urlParams.get('login') === 'true';
-
-        if (isLoginRedirect) {
-            console.log("從 PWA 跳轉過來：執行登入流程");
-            // 移除 URL 參數
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }
-
-        // 正常的登入流程
+        // 設定 Google 登入提供者
         const provider = new firebase.auth.GoogleAuthProvider();
         provider.addScope('profile');
         provider.addScope('email');
-        
-        const result = await firebase.auth().signInWithPopup(provider);
-        console.log("登入成功");
-        
-        if (isLoginRedirect) {
-            // 如果是從 PWA 跳轉來的，登入成功後跳回 PWA
-            console.log("跳轉回 PWA");
-            window.location.href = window.location.origin;
+
+        // 設定登入選項
+        const auth = firebase.auth();
+        await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+        let result;
+        if (isPWA) {
+            console.log("PWA 模式：使用彈出視窗登入");
+            // 在 PWA 模式下使用彈出視窗
+            result = await auth.signInWithPopup(provider);
+        } else {
+            console.log("瀏覽器模式：一般登入流程");
+            result = await auth.signInWithPopup(provider);
         }
+
+        console.log("登入成功");
+        await handleLoginSuccess(result.user);
         
-        handleLoginSuccess(result.user);
     } catch (error) {
         console.error("登入錯誤:", error);
-        alert("登入失敗：" + error.message);
+        if (error.code === 'auth/popup-blocked') {
+            alert("請允許彈出視窗以完成登入");
+        } else {
+            alert("登入失敗：" + error.message);
+        }
     }
 }
 
 // 登入按鈕點擊事件
 document.getElementById('googleLoginBtn').addEventListener('click', () => {
     console.log('點擊登入按鈕');
-    googleLogin();
+    googleLogin().catch(error => {
+        console.error('登入過程發生錯誤:', error);
+    });
 });
 
 // Firebase 身份驗證狀態變更監聽
