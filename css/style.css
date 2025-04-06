@@ -1093,8 +1093,9 @@ body {
     }
 }
 
+/* 漢堡選單按鈕 */
 .menu-toggle {
-    display: none;
+    display: block;  /* 改為預設顯示 */
     cursor: pointer;
     padding: 8px;
     border: none;
@@ -1117,11 +1118,22 @@ body {
     display: none;
 }
 
-@media screen and (max-width: 768px) {
+@media screen and (min-width: 769px) {
     .menu-toggle {
-        display: block;
+        display: none;  /* 在大螢幕時隱藏 */
     }
     
+    .sidebar {
+        left: 0;
+        width: var(--sidebar-width);
+    }
+    
+    .main-content {
+        margin-left: var(--sidebar-width);
+    }
+}
+
+@media screen and (max-width: 768px) {
     .sidebar {
         left: -100%;
         width: 80%;
