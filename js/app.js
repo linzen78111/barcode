@@ -984,7 +984,7 @@ let isEditing = false;
 // 顯示公告
 async function showAnnouncement() {
     try {
-        const announcementDoc = await barcodeService.db.collection('system').doc('announcement').get();
+        const announcementDoc = await barcodeService.db.collection('official').doc('data').get();
         const announcementModal = document.getElementById('developerAnnouncement');
         const announcementOverlay = document.getElementById('announcementOverlay');
         const announcementContent = document.getElementById('announcementContent');
@@ -997,14 +997,15 @@ async function showAnnouncement() {
 
         // 設置公告內容
         if (announcementDoc.exists) {
-            const { content } = announcementDoc.data();
-            announcementContent.innerHTML = content || '暫無公告';
+            const data = announcementDoc.data();
+            const content = data.announcement || '暫無公告';
+            announcementContent.innerHTML = content;
         } else {
-            // 如果公告文件不存在，建立預設公告
-            await barcodeService.db.collection('system').doc('announcement').set({
-                content: '歡迎使用條碼系統！',
+            // 如果文件不存在，建立預設公告
+            await barcodeService.db.collection('official').doc('data').set({
+                announcement: '歡迎使用條碼系統！',
                 lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            }, { merge: true });
             announcementContent.innerHTML = '歡迎使用條碼系統！';
         }
 
@@ -1048,10 +1049,10 @@ async function initializeAnnouncement() {
         // 如果是官方帳號且正在編輯，則儲存內容
         if (isOfficial && isEditing) {
             try {
-                await barcodeService.db.collection('system').doc('announcement').set({
-                    content: announcementContent.innerHTML,
+                await barcodeService.db.collection('official').doc('data').set({
+                    announcement: announcementContent.innerHTML,
                     lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                }, { merge: true });
                 console.log('公告已更新');
             } catch (error) {
                 console.error('儲存公告失敗:', error);
@@ -1114,24 +1115,18 @@ async function initializeAnnouncement() {
     }
 }
 
-// 在頁面載入時初始化公告功能
-document.addEventListener('DOMContentLoaded', () => {
-    initializeAnnouncement();
-    // ... 其他初始化代碼 ...
-});
-
 // 初始化系統設定
 async function initializeSystemSettings() {
     try {
-        // 檢查系統公告文件是否存在
-        const announcementDoc = await barcodeService.db.collection('system').doc('announcement').get();
+        // 檢查 official/data 文件是否存在
+        const officialDoc = await barcodeService.db.collection('official').doc('data').get();
         
-        // 如果公告文件不存在，建立預設公告
-        if (!announcementDoc.exists) {
-            await barcodeService.db.collection('system').doc('announcement').set({
-                content: '歡迎使用條碼系統！',
+        // 如果文件不存在或沒有公告欄位，建立預設公告
+        if (!officialDoc.exists || !officialDoc.data().announcement) {
+            await barcodeService.db.collection('official').doc('data').set({
+                announcement: '歡迎使用條碼系統！',
                 lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            }, { merge: true });
             console.log('已建立預設公告');
         }
     } catch (error) {
