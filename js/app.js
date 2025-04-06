@@ -979,13 +979,6 @@ document.addEventListener('DOMContentLoaded', () => {
     sidebar.classList.add('collapsed');
     mainContent.classList.add('expanded');
 
-    // 檢查是否為 iOS 的 standalone 模式
-    if (window.navigator.standalone) {
-        document.documentElement.requestFullscreen().catch(err => {
-            console.log('全螢幕請求被拒絕:', err);
-        });
-    }
-
     // 處理 Android 的全螢幕模式
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
@@ -1347,24 +1340,6 @@ async function handleLoginSuccess(user) {
         console.error('登入後處理失敗:', error);
         alert('初始化失敗：' + error.message);
     }
-}
-
-// 檢測是否為 PWA 模式
-function isPWAMode() {
-    // 檢查是否為 standalone 模式（已安裝為 PWA）
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                        window.navigator.standalone;
-    return isStandalone;
-}
-
-// 產生外部登入 URL
-function getExternalLoginUrl() {
-    // 取得目前的完整 URL 作為登入後的返回地址
-    const returnUrl = encodeURIComponent(window.location.origin);
-    // 加上時間戳避免快取
-    const timestamp = Date.now();
-    // 回到原始網站的登入頁面，但帶上返回參數
-    return `${window.location.origin}?mode=login&return=${returnUrl}&t=${timestamp}`;
 }
 
 // Google 登入
