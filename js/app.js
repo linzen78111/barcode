@@ -506,11 +506,11 @@ if (showAnnouncementBtn) {
         announcementModal.classList.add('active');
         
         // 在手機版時，點擊後關閉側邊欄
-        if (window.innerWidth <= 768) {
+    if (window.innerWidth <= 768) {
             sidebar.classList.remove('active');
             mainContent.classList.remove('sidebar-active');
-        }
-    });
+    }
+});
 }
 
 // 初始化公告功能
@@ -758,7 +758,7 @@ document.querySelector('.btn-upload').addEventListener('click', async () => {
                     .doc(barcode.code);
                     
                 barcode.fromOfficial = true;
-            } else {
+        } else {
                 // 一般用戶的資料存到 users 集合下的個人目錄
                 docRef = barcodeService.db
                     .collection('users')
@@ -1035,9 +1035,9 @@ async function showAnnouncement() {
         console.log('檢查用戶登入狀態:', user ? '已登入' : '未登入');
         if (!user) {
             console.log('用戶未登入');
-            return;
-        }
-
+        return;
+    }
+    
         console.log('開始讀取公告文件');
         // 從 official/announcement 讀取公告
         const announcementDoc = await barcodeService.db.collection('official').doc('announcement').get();
@@ -1200,7 +1200,7 @@ async function initializeAnnouncement() {
                         console.log('已切換到官方資料頁面');
                     }
                 }
-            } catch (error) {
+    } catch (error) {
                 console.error('處理公告關閉時發生錯誤:', error);
                 alert('處理失敗：' + error.message);
             }
