@@ -86,51 +86,51 @@
                     <div id="barcodeList" class="barcode-list">
                         <!-- 資料會動態插入這裡 -->
                     </div>
-
-                    <!-- 手動輸入頁面 -->
-                    <div id="manualPage" class="page-content hidden">
-                        <div class="manual-page">
-                            <div class="scan-header">
-                                <button class="btn-back" onclick="showPage('official')">
-                                    <span class="icon">←</span>
-                                    返回
-                                </button>
-                                <h2>手動輸入條碼</h2>
-                            </div>
-                            <form class="barcode-form" id="manualForm">
-                                <div class="form-group">
-                                    <label for="manualCode">條碼</label>
-                                    <input type="text" id="manualCode" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="manualName">商品名稱</label>
-                                    <input type="text" id="manualName" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="manualPrice">價格</label>
-                                    <input type="number" id="manualPrice" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="manualStore">商店</label>
-                                    <select id="manualStore" required>
-                                        <option value="711">7-11</option>
-                                        <option value="family">全家</option>
-                                        <option value="hilife">萊爾富</option>
-                                        <option value="ok">OK超商</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="manualDescription">描述</label>
-                                    <textarea id="manualDescription"></textarea>
-                                </div>
-                                <div class="form-actions">
-                                    <button type="submit" class="btn-primary">儲存</button>
-                                    <button type="button" class="btn-cancel" onclick="showPage('official')">取消</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
                 </main>
+            </div>
+
+            <!-- 手動輸入頁面 -->
+            <div id="manualPage" class="page hidden">
+                <div class="manual-page">
+                    <div class="manual-header">
+                        <button class="btn-back">
+                            <span class="icon">←</span>
+                            返回
+                        </button>
+                        <h2>手動輸入條碼</h2>
+                    </div>
+                    <form class="barcode-form" id="manualForm">
+                        <div class="form-group">
+                            <label for="manualCode">條碼</label>
+                            <input type="text" id="manualCode" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="manualName">商品名稱</label>
+                            <input type="text" id="manualName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="manualPrice">價格</label>
+                            <input type="number" id="manualPrice" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="manualStore">商店</label>
+                            <select id="manualStore" required>
+                                <option value="711">7-11</option>
+                                <option value="family">全家</option>
+                                <option value="hilife">萊爾富</option>
+                                <option value="ok">OK超商</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="manualDescription">描述</label>
+                            <textarea id="manualDescription"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">儲存</button>
+                            <button type="button" class="btn-cancel">取消</button>
+                        </div>
+                    </form>
+                </div>
             </div>
 
             <!-- 掃描頁面 -->

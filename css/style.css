@@ -850,6 +850,48 @@ body {
     padding: 2rem;
     max-width: 800px;
     margin: 0 auto;
+    min-height: 100vh;
+    background: #f8f9fa;
+}
+
+.manual-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.manual-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #333;
+}
+
+.manual-header .btn-back {
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #666;
+    font-size: 1rem;
+}
+
+.manual-header .btn-back:hover {
+    color: #333;
+}
+
+.manual-header .icon {
+    font-size: 1.2rem;
 }
 
 .barcode-form {

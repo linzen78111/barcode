@@ -599,10 +599,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
         console.log('切換到頁面:', page);
         
         // 隱藏所有頁面
-        document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));
-        
-        // 隱藏主內容區域
-        document.querySelector('.main-content').style.display = 'none';
+        document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
         
         // 移除所有導航項目的 active 類
         document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
@@ -622,7 +619,6 @@ document.querySelectorAll('.nav-item').forEach(item => {
                 
             case 'manual':
                 console.log('顯示手動輸入頁面');
-                document.querySelector('.main-content').style.display = 'block';
                 document.getElementById('manualPage').classList.remove('hidden');
                 break;
                 
@@ -633,7 +629,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
                     document.querySelector('[data-page="manual"]').click();
                     return;
                 }
-                document.getElementById('localDataPage').classList.remove('hidden');
+                document.getElementById('mainPage').classList.remove('hidden');
                 uploadModal.classList.remove('hidden');
                 uploadModal.style.display = 'flex';
                 uploadModal.style.opacity = '1';
@@ -647,7 +643,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
                     html5QrcodeScanner.clear();
                     html5QrcodeScanner = null;
                 }
-                document.querySelector('.main-content').style.display = 'block';
+                document.getElementById('mainPage').classList.remove('hidden');
                 loadBarcodes();
                 break;
         }
@@ -658,6 +654,22 @@ document.querySelectorAll('.nav-item').forEach(item => {
             mainContent.classList.toggle('sidebar-active');
         }
     });
+});
+
+// 手動輸入頁面的返回按鈕
+document.querySelector('#manualPage .btn-back').addEventListener('click', () => {
+    console.log('點擊手動輸入頁面返回按鈕');
+    document.getElementById('manualPage').classList.add('hidden');
+    document.getElementById('mainPage').classList.remove('hidden');
+    document.querySelector('[data-page="official"]').click();
+});
+
+// 手動輸入頁面的取消按鈕
+document.querySelector('#manualPage .btn-cancel').addEventListener('click', () => {
+    console.log('點擊手動輸入頁面取消按鈕');
+    document.getElementById('manualPage').classList.add('hidden');
+    document.getElementById('mainPage').classList.remove('hidden');
+    document.querySelector('[data-page="official"]').click();
 });
 
 // 檢查是否為官方帳號並顯示上傳按鈕
