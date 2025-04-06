@@ -978,6 +978,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // 確保側邊欄初始狀態為收合
     sidebar.classList.add('collapsed');
     mainContent.classList.add('expanded');
+
+    // 檢查是否為 iOS 的 standalone 模式
+    if (window.navigator.standalone) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.log('全螢幕請求被拒絕:', err);
+        });
+    }
+
+    // 處理 Android 的全螢幕模式
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        const deferredPrompt = e;
+        
+        // 當使用者從主畫面開啟時
+        window.addEventListener('appinstalled', () => {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('全螢幕請求被拒絕:', err);
+                });
+            }
+        });
+    });
+
+    // 監聽螢幕方向變化
+    window.addEventListener('orientationchange', () => {
+        if (document.fullscreenElement) {
+            setTimeout(() => {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('全螢幕請求被拒絕:', err);
+                });
+            }, 300);
+        }
+    });
 });
 
 // 初始化資料
