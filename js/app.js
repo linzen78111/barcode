@@ -984,32 +984,41 @@ let isEditing = false;
 // 顯示公告
 async function showAnnouncement() {
     try {
-        const announcementDoc = await barcodeService.db.collection('official').doc('data').get();
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.log('用戶未登入');
+            return;
+        }
+
+        // 從 users/announcement 讀取公告
+        const announcementDoc = await barcodeService.db.collection('users').doc('announcement').get();
         const announcementModal = document.getElementById('developerAnnouncement');
         const announcementOverlay = document.getElementById('announcementOverlay');
         const announcementContent = document.getElementById('announcementContent');
         
-        // 檢查是否為官方帳號
-        const user = firebase.auth().currentUser;
-        console.log('目前登入的用戶:', user?.email);
-        const isOfficial = user && user.email === 'apple0902303636@gmail.com';
+        console.log('目前登入的用戶:', user.email);
+        const isOfficial = user.email === 'apple0902303636@gmail.com';
         console.log('是否為官方帳號:', isOfficial);
 
         // 設置公告內容
-        if (announcementDoc.exists) {
+        if (announcementDoc.exists && announcementDoc.data().content) {
             const data = announcementDoc.data();
-            const content = data.announcement || '暫無公告';
-            announcementContent.innerHTML = content;
+            announcementContent.innerHTML = data.content;
         } else {
-            // 如果文件不存在，建立預設公告
-            await barcodeService.db.collection('official').doc('data').set({
-                announcement: '歡迎使用條碼系統！',
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-            announcementContent.innerHTML = '歡迎使用條碼系統！';
+            // 如果是官方帳號且公告不存在，建立預設公告
+            if (isOfficial) {
+                await barcodeService.db.collection('users').doc('announcement').set({
+                    content: '歡迎使用條碼系統！',
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedBy: user.email
+                });
+                announcementContent.innerHTML = '歡迎使用條碼系統！';
+            } else {
+                announcementContent.innerHTML = '暫無公告';
+            }
         }
 
-        // 如果是官方帳號，直接進入編輯模式
+        // 只有官方帳號可以編輯
         if (isOfficial) {
             announcementContent.contentEditable = true;
             announcementContent.classList.add('editable');
@@ -1033,6 +1042,8 @@ async function showAnnouncement() {
 
 // 初始化公告功能
 async function initializeAnnouncement() {
+    console.log('開始初始化公告功能');
+    
     const closeButton = document.getElementById('closeAnnouncement');
     const dontShowCheckbox = document.getElementById('dontShowToday');
     const announcementContent = document.getElementById('announcementContent');
@@ -1040,93 +1051,139 @@ async function initializeAnnouncement() {
     const announcementModal = document.getElementById('developerAnnouncement');
     const announcementOverlay = document.getElementById('announcementOverlay');
 
+    // 檢查元素是否存在
+    console.log('關閉按鈕存在:', !!closeButton);
+    console.log('公告視窗存在:', !!announcementModal);
+
     // 關閉按鈕事件
-    closeButton.addEventListener('click', async () => {
-        const user = firebase.auth().currentUser;
-        const isOfficial = user && user.email === 'apple0902303636@gmail.com';
-        console.log('關閉時檢查 - 是否為官方帳號:', isOfficial);
-
-        // 如果是官方帳號且正在編輯，則儲存內容
-        if (isOfficial && isEditing) {
-            try {
-                await barcodeService.db.collection('official').doc('data').set({
-                    announcement: announcementContent.innerHTML,
-                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-                console.log('公告已更新');
-            } catch (error) {
-                console.error('儲存公告失敗:', error);
-                alert('儲存失敗：' + error.message);
-                return; // 如果儲存失敗，不關閉視窗
+    if (closeButton) {
+        closeButton.onclick = async () => {
+            console.log('關閉按鈕被點擊');
+            
+            const user = firebase.auth().currentUser;
+            if (!user) {
+                console.log('用戶未登入');
+                return;
             }
-        }
 
-        if (dontShowCheckbox.checked) {
-            localStorage.setItem('lastShownAnnouncement', new Date().toDateString());
-        }
+            const isOfficial = user.email === 'apple0902303636@gmail.com';
+            console.log('關閉時檢查 - 是否為官方帳號:', isOfficial);
 
-        // 關閉公告視窗
-        announcementModal.classList.remove('active');
-        announcementOverlay.classList.remove('active');
-        
-        // 重置編輯狀態
-        announcementContent.contentEditable = false;
-        announcementContent.classList.remove('editable');
-        isEditing = false;
+            // 只有官方帳號可以儲存修改
+            if (isOfficial && isEditing) {
+                try {
+                    await barcodeService.db.collection('users').doc('announcement').set({
+                        content: announcementContent.innerHTML,
+                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedBy: user.email
+                    });
+                    console.log('公告已更新');
+                } catch (error) {
+                    console.error('儲存公告失敗:', error);
+                    alert('儲存失敗：' + error.message);
+                    return; // 如果儲存失敗，不關閉視窗
+                }
+            }
 
-        // 切換到官方資料頁面
-        const mainPage = document.getElementById('mainPage');
-        const pages = document.querySelectorAll('.page');
-        const navItems = document.querySelectorAll('.nav-item');
-        
-        // 先隱藏所有頁面
-        pages.forEach(page => page.classList.add('hidden'));
-        
-        // 移除所有導航項目的 active 類
-        navItems.forEach(nav => nav.classList.remove('active'));
-        
-        // 顯示主頁面並設置官方資料頁籤為活動狀態
-        mainPage.classList.remove('hidden');
-        const officialTab = document.querySelector('[data-page="official"]');
-        if (officialTab) {
-            officialTab.classList.add('active');
-            // 重新載入條碼資料
-            loadBarcodes();
-            console.log('已切換到官方資料頁面');
-        }
-    });
+            if (dontShowCheckbox && dontShowCheckbox.checked) {
+                localStorage.setItem('lastShownAnnouncement', new Date().toDateString());
+            }
+
+            // 關閉公告視窗
+            if (announcementModal && announcementOverlay) {
+                announcementModal.classList.remove('active');
+                announcementOverlay.classList.remove('active');
+                console.log('公告視窗已關閉');
+            }
+            
+            // 重置編輯狀態
+            if (announcementContent) {
+                announcementContent.contentEditable = false;
+                announcementContent.classList.remove('editable');
+                isEditing = false;
+                console.log('編輯狀態已重置');
+            }
+
+            // 切換到官方資料頁面
+            const mainPage = document.getElementById('mainPage');
+            const pages = document.querySelectorAll('.page');
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            if (mainPage && pages.length > 0) {
+                // 先隱藏所有頁面
+                pages.forEach(page => page.classList.add('hidden'));
+                console.log('所有頁面已隱藏');
+                
+                // 移除所有導航項目的 active 類
+                navItems.forEach(nav => nav.classList.remove('active'));
+                
+                // 顯示主頁面並設置官方資料頁籤為活動狀態
+                mainPage.classList.remove('hidden');
+                const officialTab = document.querySelector('[data-page="official"]');
+                if (officialTab) {
+                    officialTab.classList.add('active');
+                    // 重新載入條碼資料
+                    loadBarcodes();
+                    console.log('已切換到官方資料頁面');
+                }
+            }
+        };
+        console.log('關閉按鈕事件已綁定');
+    }
 
     // 點擊遮罩層關閉公告
-    announcementOverlay.addEventListener('click', () => {
-        announcementModal.classList.remove('active');
-        announcementOverlay.classList.remove('active');
-        
-        // 重置編輯狀態
-        announcementContent.contentEditable = false;
-        announcementContent.classList.remove('editable');
-        isEditing = false;
-    });
+    if (announcementOverlay) {
+        announcementOverlay.onclick = () => {
+            console.log('遮罩層被點擊');
+            if (announcementModal) {
+                announcementModal.classList.remove('active');
+                announcementOverlay.classList.remove('active');
+                console.log('透過遮罩層關閉公告視窗');
+            }
+            
+            // 重置編輯狀態
+            if (announcementContent) {
+                announcementContent.contentEditable = false;
+                announcementContent.classList.remove('editable');
+                isEditing = false;
+            }
+        };
+        console.log('遮罩層事件已綁定');
+    }
 
     // 側邊欄公告按鈕點擊事件
     if (showAnnouncementBtn) {
-        showAnnouncementBtn.addEventListener('click', () => {
-            showAnnouncement();  // 直接調用 showAnnouncement 函數
-        });
+        showAnnouncementBtn.onclick = () => {
+            console.log('側邊欄公告按鈕被點擊');
+            showAnnouncement();
+        };
+        console.log('側邊欄公告按鈕事件已綁定');
     }
+    
+    console.log('公告功能初始化完成');
 }
 
 // 初始化系統設定
 async function initializeSystemSettings() {
     try {
-        // 檢查 official/data 文件是否存在
-        const officialDoc = await barcodeService.db.collection('official').doc('data').get();
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            console.log('用戶未登入');
+            return;
+        }
+
+        const isOfficial = user.email === 'apple0902303636@gmail.com';
         
-        // 如果文件不存在或沒有公告欄位，建立預設公告
-        if (!officialDoc.exists || !officialDoc.data().announcement) {
-            await barcodeService.db.collection('official').doc('data').set({
-                announcement: '歡迎使用條碼系統！',
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
+        // 檢查公告文件是否存在
+        const announcementDoc = await barcodeService.db.collection('users').doc('announcement').get();
+        
+        // 如果是官方帳號且公告不存在，建立預設公告
+        if (isOfficial && (!announcementDoc.exists || !announcementDoc.data().content)) {
+            await barcodeService.db.collection('users').doc('announcement').set({
+                content: '歡迎使用條碼系統！',
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedBy: user.email
+            });
             console.log('已建立預設公告');
         }
     } catch (error) {
