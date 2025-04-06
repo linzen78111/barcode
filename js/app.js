@@ -970,6 +970,15 @@ uploadLocalDataBtn.addEventListener('click', () => {
     document.getElementById('localDataPage').classList.remove('hidden');
 });
 
+// 請求全螢幕
+function requestFullscreen() {
+    if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.log('全螢幕請求被拒絕:', err);
+        });
+    }
+}
+
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
     initializeDropZone();
@@ -979,47 +988,55 @@ document.addEventListener('DOMContentLoaded', () => {
     sidebar.classList.add('collapsed');
     mainContent.classList.add('expanded');
 
-    // 處理 Android 的全螢幕模式
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        const deferredPrompt = e;
-        
-        // 當使用者從主畫面開啟時
-        window.addEventListener('appinstalled', () => {
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen().catch(err => {
-                    console.log('全螢幕請求被拒絕:', err);
-                });
-            }
-        });
+    // 監聽所有可能的點擊事件，嘗試進入全螢幕
+    document.addEventListener('click', () => {
+        requestFullscreen();
     });
 
     // 監聽螢幕方向變化
     window.addEventListener('orientationchange', () => {
-        if (document.fullscreenElement) {
-            setTimeout(() => {
-                document.documentElement.requestFullscreen().catch(err => {
-                    console.log('全螢幕請求被拒絕:', err);
-                });
-            }, 300);
+        setTimeout(requestFullscreen, 300);
+    });
+
+    // 初次載入時請求全螢幕
+    requestFullscreen();
+});
+
+// 在頁面載入時檢查登入狀態
+window.addEventListener('load', async () => {
+    try {
+        // 檢查是否有重定向結果
+        const result = await firebase.auth().getRedirectResult();
+        if (result.user) {
+            console.log("重定向登入成功");
+            await handleLoginSuccess(result.user);
         }
+
+        // 請求全螢幕
+        requestFullscreen();
+    } catch (error) {
+        console.error("處理登入狀態時發生錯誤:", error);
+    }
+});
+
+// 登入按鈕點擊事件
+document.getElementById('googleLoginBtn').addEventListener('click', () => {
+    console.log('點擊登入按鈕');
+    googleLogin().catch(error => {
+        console.error('登入過程發生錯誤:', error);
     });
 });
 
-// 初始化資料
-async function initializeData() {
-    try {
-        // 預設顯示官方資料頁面
-        const officialTab = document.querySelector('[data-page="official"]');
-        if (officialTab) {
-            officialTab.classList.add('active');
-        }
-        await loadBarcodes();
-    } catch (error) {
-        console.error('初始化失敗:', error);
-        alert('資料載入失敗，請重新整理頁面');
+// Firebase 身份驗證狀態變更監聽
+firebase.auth().onAuthStateChanged(async (user) => {
+    console.log('身份驗證狀態變更:', user ? '已登入' : '未登入');
+    if (user) {
+        await handleLoginSuccess(user);
+    } else {
+        document.getElementById('loginPage').classList.remove('hidden');
+        document.getElementById('mainPage').classList.add('hidden');
     }
-}
+});
 
 // 開發者公告功能
 async function showAnnouncement() {
@@ -1370,54 +1387,4 @@ async function googleLogin() {
             alert("登入失敗：" + error.message);
         }
     }
-}
-
-// 在頁面載入時檢查登入狀態
-window.addEventListener('load', async () => {
-    try {
-        // 檢查是否有重定向結果
-        const result = await firebase.auth().getRedirectResult();
-        if (result.user) {
-            console.log("重定向登入成功");
-            await handleLoginSuccess(result.user);
-        }
-
-        // 請求全螢幕
-        const requestFullscreen = () => {
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen().catch(err => {
-                    console.log('全螢幕請求被拒絕:', err);
-                });
-            }
-        };
-
-        // 監聽螢幕方向變化
-        window.addEventListener('orientationchange', () => {
-            setTimeout(requestFullscreen, 300);
-        });
-
-        // 初次載入時請求全螢幕
-        requestFullscreen();
-    } catch (error) {
-        console.error("處理登入狀態時發生錯誤:", error);
-    }
-});
-
-// 登入按鈕點擊事件
-document.getElementById('googleLoginBtn').addEventListener('click', () => {
-    console.log('點擊登入按鈕');
-    googleLogin().catch(error => {
-        console.error('登入過程發生錯誤:', error);
-    });
-});
-
-// Firebase 身份驗證狀態變更監聽
-firebase.auth().onAuthStateChanged(async (user) => {
-    console.log('身份驗證狀態變更:', user ? '已登入' : '未登入');
-    if (user) {
-        await handleLoginSuccess(user);
-    } else {
-        document.getElementById('loginPage').classList.remove('hidden');
-        document.getElementById('mainPage').classList.add('hidden');
-    }
-}); 
+} 
