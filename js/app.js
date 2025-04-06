@@ -1349,47 +1349,83 @@ async function handleLoginSuccess(user) {
     }
 }
 
+// 檢測是否為 iOS PWA
+function isIOSPWA() {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                  window.navigator.standalone;
+    return isIOS && isPWA;
+}
+
+// 產生登入 URL
+function generateLoginURL() {
+    // 取得目前的 URL 作為重定向目標
+    const redirectURL = window.location.origin;
+    // 加入時間戳記避免快取
+    const timestamp = new Date().getTime();
+    // 建立登入 URL，包含必要參數
+    return `${window.location.origin}/login.html?redirect=${encodeURIComponent(redirectURL)}&t=${timestamp}`;
+}
+
 // Google 登入
 async function googleLogin() {
     try {
         console.log("開始 Google 登入流程");
         
-        // 檢查是否在 PWA 模式
-        const isPWA = window.matchMedia('(display-mode: standalone)').matches;
-        console.log("是否為 PWA 模式:", isPWA);
+        if (isIOSPWA()) {
+            console.log("iOS PWA 環境：使用外部瀏覽器登入");
+            // 儲存目前的路徑到 localStorage
+            localStorage.setItem('loginRedirectPath', window.location.pathname);
+            // 使用 window.location.href 跳轉到外部瀏覽器
+            window.location.href = generateLoginURL();
+            return;
+        }
 
-        // 設定 Google 登入提供者
+        // 非 iOS PWA 環境：使用一般登入流程
         const provider = new firebase.auth.GoogleAuthProvider();
         provider.addScope('profile');
         provider.addScope('email');
 
-        // 設定登入選項
         const auth = firebase.auth();
         await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-        if (isPWA) {
-            console.log("PWA 模式：使用重定向登入");
-            // 在 PWA 模式下使用重定向方式
-            await auth.signInWithRedirect(provider);
-            return; // 重定向後這裡的代碼不會繼續執行
-        } else {
-            console.log("瀏覽器模式：使用彈出視窗登入");
-            const result = await auth.signInWithPopup(provider);
-            console.log("登入成功");
-            await handleLoginSuccess(result.user);
-        }
+        // 一般環境使用 redirect 方式
+        console.log("一般環境：使用重定向登入");
+        await auth.signInWithRedirect(provider);
     } catch (error) {
         console.error("登入錯誤:", error);
         alert("登入失敗：" + error.message);
     }
 }
 
-// 檢查重定向登入結果
+// 檢查登入重定向結果
 async function checkRedirectResult() {
     try {
+        console.log("檢查登入重定向結果");
         const auth = firebase.auth();
-        const result = await auth.getRedirectResult();
         
+        // 檢查是否有來自外部瀏覽器的登入
+        const params = new URLSearchParams(window.location.search);
+        const isLoginRedirect = params.get('login_success') === 'true';
+        
+        if (isLoginRedirect) {
+            console.log("檢測到外部瀏覽器登入成功");
+            // 清除 URL 參數
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            // 取得儲存的路徑
+            const redirectPath = localStorage.getItem('loginRedirectPath') || '/';
+            localStorage.removeItem('loginRedirectPath');
+            
+            // 如果當前不在目標路徑，進行跳轉
+            if (window.location.pathname !== redirectPath) {
+                window.location.href = redirectPath;
+                return;
+            }
+        }
+
+        // 處理一般的重定向結果
+        const result = await auth.getRedirectResult();
         if (result.user) {
             console.log("重定向登入成功");
             await handleLoginSuccess(result.user);

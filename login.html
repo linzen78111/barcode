@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登入 - 條碼掃描系統</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        .login-container {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .message {
+            margin-bottom: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="message">正在處理登入請求...</div>
+    </div>
+
+    <script>
+        // Firebase 設定（與主應用相同的設定）
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8bpL8_PFUhUiRtVz7iQO-YiJJJtqHRU0",
+            authDomain: "barcode-384305.firebaseapp.com",
+            projectId: "barcode-384305",
+            storageBucket: "barcode-384305.appspot.com",
+            messagingSenderId: "1043641131440",
+            appId: "1:1043641131440:web:c0c6a2c0d2c7c3a7c4c3c3"
+        };
+
+        // 初始化 Firebase
+        firebase.initializeApp(firebaseConfig);
+
+        // 處理登入
+        async function handleLogin() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const redirectURL = params.get('redirect');
+                
+                if (!redirectURL) {
+                    throw new Error('未提供重定向 URL');
+                }
+
+                const provider = new firebase.auth.GoogleAuthProvider();
+                provider.addScope('profile');
+                provider.addScope('email');
+
+                // 使用 popup 方式在瀏覽器中進行登入
+                const result = await firebase.auth().signInWithPopup(provider);
+                
+                if (result.user) {
+                    // 登入成功，重定向回 PWA
+                    window.location.href = `${redirectURL}?login_success=true`;
+                }
+            } catch (error) {
+                console.error('登入失敗:', error);
+                document.querySelector('.message').textContent = '登入失敗：' + error.message;
+            }
+        }
+
+        // 頁面載入後自動開始登入流程
+        window.addEventListener('load', handleLogin);
+    </script>
+</body>
+</html> 
