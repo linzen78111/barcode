@@ -1353,9 +1353,29 @@ async function handleLoginSuccess(user) {
 async function googleLogin() {
     try {
         const provider = new firebase.auth.GoogleAuthProvider();
-        const result = await firebase.auth().signInWithPopup(provider);
-        if (result.user) {
-            await handleLoginSuccess(result.user);
+        
+        // 檢查是否為 PWA 模式
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            console.log('PWA 模式：使用特殊處理');
+            // 設定登入選項
+            provider.setCustomParameters({
+                prompt: 'select_account',
+                // 強制在同一個視窗中開啟
+                display: 'popup'
+            });
+            
+            // 使用 signInWithRedirect，但指定重定向 URL 為當前頁面
+            const redirectUrl = window.location.href;
+            firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+                .then(() => {
+                    return firebase.auth().signInWithRedirect(provider);
+                });
+        } else {
+            console.log('瀏覽器模式：使用一般登入');
+            const result = await firebase.auth().signInWithPopup(provider);
+            if (result.user) {
+                await handleLoginSuccess(result.user);
+            }
         }
     } catch (error) {
         console.error('Google 登入失敗:', error);
@@ -1371,28 +1391,24 @@ document.getElementById('googleLoginBtn').addEventListener('click', () => {
 
 // Firebase 身份驗證狀態變更監聽
 firebase.auth().onAuthStateChanged(async (user) => {
+    console.log('身份驗證狀態變更:', user ? '已登入' : '未登入');
     if (user) {
-        // 用戶已登入
-        document.getElementById('loginPage').classList.add('hidden');
-        document.getElementById('mainPage').classList.remove('hidden');
-        
-        // 更新用戶資訊
-        const userAvatar = document.getElementById('userAvatar');
-        const userName = document.getElementById('userName');
-        
-        if (userAvatar && user.photoURL) {
-            userAvatar.src = user.photoURL;
-        }
-        
-        if (userName && user.displayName) {
-            userName.textContent = user.displayName;
-        }
-        
-        // 載入條碼資料
-        await loadBarcodes();
+        await handleLoginSuccess(user);
     } else {
         // 用戶未登入
         document.getElementById('loginPage').classList.remove('hidden');
         document.getElementById('mainPage').classList.add('hidden');
     }
+});
+
+// 處理重定向登入結果
+firebase.auth().getRedirectResult().then(async (result) => {
+    console.log('處理重定向登入結果');
+    if (result.user) {
+        console.log('重定向登入成功');
+        await handleLoginSuccess(result.user);
+    }
+}).catch((error) => {
+    console.error('重定向登入失敗:', error);
+    alert('登入失敗：' + error.message);
 }); 
