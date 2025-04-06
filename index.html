@@ -15,16 +15,19 @@
 </head>
 <body>
     <!-- 開發者公告 -->
+    <div class="announcement-overlay" id="announcementOverlay"></div>
     <div id="developerAnnouncement" class="announcement-modal">
         <div class="announcement-content">
-            <h2>開發者公告</h2>
+            <div class="announcement-header">
+                <h2>開發者公告</h2>
+            </div>
             <div id="announcementContent" class="announcement-text">
                 <!-- 公告內容將動態插入 -->
             </div>
             <div class="announcement-actions">
                 <label class="dont-show-today">
                     <input type="checkbox" id="dontShowToday">
-                    今天不再顯示
+                    <span>今天不再顯示</span>
                 </label>
                 <button id="closeAnnouncement" class="btn-close">
                     <span class="save-text">儲存並關閉</span>

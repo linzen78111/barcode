@@ -1002,8 +1002,8 @@ async function showAnnouncement() {
     try {
         const announcementDoc = await barcodeService.db.collection('system').doc('announcement').get();
         const announcementModal = document.getElementById('developerAnnouncement');
+        const announcementOverlay = document.getElementById('announcementOverlay');
         const announcementContent = document.getElementById('announcementContent');
-        const editButton = document.getElementById('editAnnouncement');
         
         // 檢查是否為官方帳號
         const user = firebase.auth().currentUser;
@@ -1021,20 +1021,17 @@ async function showAnnouncement() {
         if (isOfficial) {
             announcementContent.contentEditable = true;
             announcementContent.classList.add('editable');
-            editButton.textContent = '儲存公告';
-            editButton.style.backgroundColor = '#ff9800';
-            editButton.style.display = 'block';
             isEditing = true;
         } else {
             announcementContent.contentEditable = false;
             announcementContent.classList.remove('editable');
-            editButton.style.display = 'none';
             isEditing = false;
         }
 
-        // 如果沒有勾選今天不再顯示，就顯示公告
+        // 顯示公告
         if (!hasShownTodayAnnouncement()) {
             announcementModal.classList.add('active');
+            announcementOverlay.classList.add('active');
         }
     } catch (error) {
         console.error('載入公告失敗:', error);
@@ -1045,9 +1042,9 @@ async function showAnnouncement() {
 async function initializeAnnouncement() {
     const closeButton = document.getElementById('closeAnnouncement');
     const dontShowCheckbox = document.getElementById('dontShowToday');
-    const editButton = document.getElementById('editAnnouncement');
     const announcementContent = document.getElementById('announcementContent');
     const showAnnouncementBtn = document.getElementById('showAnnouncementBtn');
+    const announcementOverlay = document.getElementById('announcementOverlay');
 
     // 關閉按鈕事件
     closeButton.addEventListener('click', async () => {
@@ -1065,19 +1062,22 @@ async function initializeAnnouncement() {
             } catch (error) {
                 console.error('儲存公告失敗:', error);
                 alert('儲存失敗：' + error.message);
+                return; // 如果儲存失敗，不關閉視窗
             }
         }
 
         if (dontShowCheckbox.checked) {
             localStorage.setItem('lastShownAnnouncement', new Date().toDateString());
         }
-        document.getElementById('developerAnnouncement').classList.remove('active');
+
+        // 關閉公告視窗
+        const announcementModal = document.getElementById('developerAnnouncement');
+        announcementModal.classList.remove('active');
+        announcementOverlay.classList.remove('active');
         
         // 重置編輯狀態
         announcementContent.contentEditable = false;
         announcementContent.classList.remove('editable');
-        editButton.textContent = '編輯公告';
-        editButton.style.backgroundColor = '#4CAF50';
         isEditing = false;
 
         // 切換到官方資料頁面
@@ -1091,9 +1091,20 @@ async function initializeAnnouncement() {
         }
     });
 
+    // 點擊遮罩層關閉公告
+    announcementOverlay.addEventListener('click', () => {
+        const announcementModal = document.getElementById('developerAnnouncement');
+        announcementModal.classList.remove('active');
+        announcementOverlay.classList.remove('active');
+    });
+
     // 側邊欄公告按鈕點擊事件
     if (showAnnouncementBtn) {
         showAnnouncementBtn.addEventListener('click', () => {
+            const announcementModal = document.getElementById('developerAnnouncement');
+            const announcementOverlay = document.getElementById('announcementOverlay');
+            announcementModal.classList.add('active');
+            announcementOverlay.classList.add('active');
             showAnnouncement();
         });
     }
