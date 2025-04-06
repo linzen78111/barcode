@@ -1367,51 +1367,43 @@ async function googleLogin() {
         const auth = firebase.auth();
         await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-        let result;
         if (isPWA) {
-            console.log("PWA 模式：使用預先開啟的彈出視窗");
-            // 同步開啟一個空白視窗
-            const popupWindow = window.open('about:blank', '_blank', 'width=600,height=800');
-            if (!popupWindow) {
-                throw new Error('彈出視窗被阻擋，請允許彈出視窗以完成登入');
-            }
-
-            // 設定彈出視窗選項
-            provider.setCustomParameters({
-                prompt: 'select_account'
-            });
-
-            try {
-                // 使用預先開啟的視窗進行 OAuth 登入
-                result = await auth.signInWithPopup(provider);
-                // 登入成功後關閉彈出視窗
-                if (popupWindow && !popupWindow.closed) {
-                    popupWindow.close();
-                }
-            } catch (error) {
-                // 發生錯誤時關閉彈出視窗
-                if (popupWindow && !popupWindow.closed) {
-                    popupWindow.close();
-                }
-                throw error;
-            }
+            console.log("PWA 模式：使用重定向登入");
+            // 在 PWA 模式下使用重定向方式
+            await auth.signInWithRedirect(provider);
+            return; // 重定向後這裡的代碼不會繼續執行
         } else {
-            console.log("瀏覽器模式：一般登入流程");
-            result = await auth.signInWithPopup(provider);
+            console.log("瀏覽器模式：使用彈出視窗登入");
+            const result = await auth.signInWithPopup(provider);
+            console.log("登入成功");
+            await handleLoginSuccess(result.user);
         }
-
-        console.log("登入成功");
-        await handleLoginSuccess(result.user);
-        
     } catch (error) {
         console.error("登入錯誤:", error);
-        if (error.code === 'auth/popup-blocked') {
-            alert("請允許彈出視窗以完成登入");
-        } else {
-            alert("登入失敗：" + error.message);
-        }
+        alert("登入失敗：" + error.message);
     }
 }
+
+// 檢查重定向登入結果
+async function checkRedirectResult() {
+    try {
+        const auth = firebase.auth();
+        const result = await auth.getRedirectResult();
+        
+        if (result.user) {
+            console.log("重定向登入成功");
+            await handleLoginSuccess(result.user);
+        }
+    } catch (error) {
+        console.error("重定向登入錯誤:", error);
+        alert("登入失敗：" + error.message);
+    }
+}
+
+// 在頁面載入時檢查重定向結果
+window.addEventListener('load', () => {
+    checkRedirectResult();
+});
 
 // 登入按鈕點擊事件
 document.getElementById('googleLoginBtn').addEventListener('click', () => {
@@ -1431,16 +1423,4 @@ firebase.auth().onAuthStateChanged(async (user) => {
         document.getElementById('loginPage').classList.remove('hidden');
         document.getElementById('mainPage').classList.add('hidden');
     }
-});
-
-// 處理重定向登入結果
-firebase.auth().getRedirectResult().then(async (result) => {
-    console.log('處理重定向登入結果');
-    if (result.user) {
-        console.log('重定向登入成功');
-        await handleLoginSuccess(result.user);
-    }
-}).catch((error) => {
-    console.error('重定向登入失敗:', error);
-    alert('登入失敗：' + error.message);
 }); 
