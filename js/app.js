@@ -1354,19 +1354,75 @@ async function googleLogin() {
     try {
         const provider = new firebase.auth.GoogleAuthProvider();
         provider.setCustomParameters({
-            prompt: 'select_account'
+            prompt: 'select_account',
+            display: 'popup',
+            // 強制使用內嵌方式
+            ux_mode: 'popup'
         });
         
-        // 在 PWA 模式下使用 popup 方式，因為 redirect 方式可能有問題
-        console.log('使用 popup 方式登入');
-        const result = await firebase.auth().signInWithPopup(provider);
-        await handleLoginSuccess(result.user);
+        // 使用 signInWithRedirect 但設定為內嵌模式
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            console.log('PWA 模式：使用內嵌登入');
+            // 儲存當前頁面狀態
+            const currentState = {
+                path: window.location.pathname,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('loginState', JSON.stringify(currentState));
+            
+            // 建立內嵌登入框
+            const loginFrame = document.createElement('div');
+            loginFrame.id = 'loginFrame';
+            loginFrame.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 90%;
+                max-width: 400px;
+                height: 500px;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10000;
+                overflow: hidden;
+            `;
+            document.body.appendChild(loginFrame);
+            
+            // 建立遮罩層
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 9999;
+            `;
+            document.body.appendChild(overlay);
+            
+            try {
+                const result = await firebase.auth().signInWithPopup(provider);
+                await handleLoginSuccess(result.user);
+            } finally {
+                // 移除登入框和遮罩層
+                document.body.removeChild(loginFrame);
+                document.body.removeChild(overlay);
+            }
+        } else {
+            console.log('瀏覽器模式：使用一般登入');
+            const result = await firebase.auth().signInWithPopup(provider);
+            await handleLoginSuccess(result.user);
+        }
     } catch (error) {
         console.error('Google 登入失敗:', error);
         
         // 如果是網路錯誤，顯示更友善的錯誤訊息
         if (error.code === 'auth/network-request-failed') {
             alert('網路連線不穩定，請檢查您的網路連線後再試一次');
+        } else if (error.code === 'auth/popup-closed-by-user') {
+            alert('登入視窗被關閉，請再試一次');
         } else {
             alert('登入失敗：' + error.message);
         }
