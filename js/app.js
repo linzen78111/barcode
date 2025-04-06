@@ -1233,13 +1233,68 @@ async function initializeSystemSettings() {
     }
 }
 
-// 在應用程式啟動時初始化
-document.addEventListener('DOMContentLoaded', async () => {
+// 登入成功後的處理
+async function handleLoginSuccess(user) {
     try {
+        // 更新用戶資訊
+        const userAvatar = document.getElementById('userAvatar');
+        const userName = document.getElementById('userName');
+        
+        if (userAvatar && user.photoURL) {
+            userAvatar.src = user.photoURL;
+        }
+        
+        if (userName && user.displayName) {
+            userName.textContent = user.displayName;
+        }
+        
+        // 隱藏登入頁面，顯示主頁面
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('mainPage').classList.remove('hidden');
+        
+        // 初始化系統設定
         await initializeSystemSettings();
-        initializeAnnouncement();
-        // ... 其他初始化程式 ...
+        
+        // 檢查是否需要顯示公告
+        const lastShown = localStorage.getItem('lastShownAnnouncement');
+        const today = new Date().toDateString();
+        
+        if (lastShown !== today) {
+            // 如果今天還沒顯示過，就顯示公告
+            await showAnnouncement();
+        }
+        
+        // 載入條碼資料
+        await loadBarcodes();
+        
     } catch (error) {
-        console.error('應用程式初始化失敗:', error);
+        console.error('登入後處理失敗:', error);
+        alert('初始化失敗：' + error.message);
+    }
+}
+
+// Google 登入
+async function googleLogin() {
+    try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const result = await firebase.auth().signInWithPopup(provider);
+        await handleLoginSuccess(result.user);
+    } catch (error) {
+        console.error('Google 登入失敗:', error);
+        alert('登入失敗：' + error.message);
+    }
+}
+
+// 登入按鈕點擊事件
+document.getElementById('googleLoginBtn').addEventListener('click', googleLogin);
+
+// Firebase 身份驗證狀態變更監聽
+firebase.auth().onAuthStateChanged(async (user) => {
+    if (user) {
+        await handleLoginSuccess(user);
+    } else {
+        // 用戶未登入，顯示登入頁面
+        document.getElementById('loginPage').classList.remove('hidden');
+        document.getElementById('mainPage').classList.add('hidden');
     }
 }); 
