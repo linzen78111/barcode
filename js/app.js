@@ -1353,12 +1353,18 @@ async function handleLoginSuccess(user) {
 async function googleLogin() {
     try {
         const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({
+            prompt: 'select_account'
+        });
+        
         // 在 PWA 模式下使用 redirect 方式
         if (window.matchMedia('(display-mode: standalone)').matches) {
-            console.log('使用 redirect 方式登入');
+            console.log('PWA 模式：使用 redirect 方式登入');
+            // 儲存目前的路徑，以便重定向後返回
+            sessionStorage.setItem('redirectPath', window.location.pathname);
             await firebase.auth().signInWithRedirect(provider);
         } else {
-            console.log('使用 popup 方式登入');
+            console.log('瀏覽器模式：使用 popup 方式登入');
             const result = await firebase.auth().signInWithPopup(provider);
             await handleLoginSuccess(result.user);
         }
@@ -1369,11 +1375,31 @@ async function googleLogin() {
 }
 
 // 登入按鈕點擊事件
-document.getElementById('googleLoginBtn').addEventListener('click', googleLogin);
+const googleLoginBtn = document.getElementById('googleLoginBtn');
+if (googleLoginBtn) {
+    googleLoginBtn.addEventListener('click', () => {
+        console.log('點擊登入按鈕');
+        googleLogin();
+    });
+} else {
+    console.error('找不到登入按鈕');
+}
 
 // Firebase 身份驗證狀態變更監聽
 firebase.auth().onAuthStateChanged(async (user) => {
+    console.log('身份驗證狀態變更:', user ? '已登入' : '未登入');
     if (user) {
+        // 檢查是否有儲存的路徑
+        const redirectPath = sessionStorage.getItem('redirectPath');
+        if (redirectPath) {
+            console.log('發現儲存的路徑:', redirectPath);
+            sessionStorage.removeItem('redirectPath');
+            // 如果在 PWA 模式下，重新導向到正確的頁面
+            if (window.matchMedia('(display-mode: standalone)').matches) {
+                window.location.href = redirectPath;
+                return;
+            }
+        }
         await handleLoginSuccess(user);
     } else {
         // 用戶未登入，顯示登入頁面
@@ -1384,11 +1410,21 @@ firebase.auth().onAuthStateChanged(async (user) => {
 
 // 處理重定向登入結果
 firebase.auth().getRedirectResult().then(async (result) => {
+    console.log('處理重定向登入結果');
     if (result.user) {
         console.log('重定向登入成功');
         await handleLoginSuccess(result.user);
+    } else {
+        console.log('無重定向登入結果');
     }
 }).catch((error) => {
     console.error('重定向登入失敗:', error);
+    // 如果是在 PWA 模式下，嘗試返回原始頁面
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        const redirectPath = sessionStorage.getItem('redirectPath');
+        if (redirectPath) {
+            window.location.href = redirectPath;
+        }
+    }
     alert('登入失敗：' + error.message);
 }); 
