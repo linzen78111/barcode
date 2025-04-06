@@ -1084,7 +1084,7 @@ async function initializeAnnouncement() {
 
     // 關閉按鈕事件
     if (closeButton) {
-        closeButton.onclick = async () => {
+        closeButton.addEventListener('click', async () => {
             console.log('關閉按鈕被點擊');
             
             const user = firebase.auth().currentUser;
@@ -1096,93 +1096,114 @@ async function initializeAnnouncement() {
             const isOfficial = user.email === 'apple0902303636@gmail.com';
             console.log('關閉時檢查 - 是否為官方帳號:', isOfficial);
 
-            // 只有官方帳號可以儲存修改
-            if (isOfficial && announcementContent.dataset.isEditing === 'true') {
-                try {
+            try {
+                // 如果是官方帳號，儲存修改
+                if (isOfficial) {
+                    console.log('儲存公告內容:', announcementContent.innerHTML);
                     await barcodeService.db.collection('official').doc('announcement').set({
                         content: announcementContent.innerHTML,
-                        lastUpdated: firebase.firestore.Timestamp.fromDate(new Date('2025-04-06T05:16:21Z'))  // UTC+8 13:16:21
+                        lastUpdated: firebase.firestore.Timestamp.fromDate(new Date('2025-04-06T05:16:21Z'))
                     });
                     console.log('公告已更新');
-                } catch (error) {
-                    console.error('儲存公告失敗:', error);
-                    alert('儲存失敗：' + error.message);
-                    return; // 如果儲存失敗，不關閉視窗
                 }
-            }
 
-            if (dontShowCheckbox && dontShowCheckbox.checked) {
-                localStorage.setItem('lastShownAnnouncement', new Date().toDateString());
-            }
-
-            // 關閉公告視窗
-            if (announcementModal && announcementOverlay) {
-                announcementModal.classList.remove('active');
-                announcementOverlay.classList.remove('active');
-                console.log('公告視窗已關閉');
-            }
-            
-            // 重置編輯狀態
-            if (announcementContent) {
-                announcementContent.contentEditable = false;
-                announcementContent.classList.remove('editable');
-                announcementContent.dataset.isEditing = 'false';
-                console.log('編輯狀態已重置');
-            }
-
-            // 切換到官方資料頁面
-            const mainPage = document.getElementById('mainPage');
-            const pages = document.querySelectorAll('.page');
-            const navItems = document.querySelectorAll('.nav-item');
-            
-            if (mainPage && pages.length > 0) {
-                // 先隱藏所有頁面
-                pages.forEach(page => page.classList.add('hidden'));
-                console.log('所有頁面已隱藏');
-                
-                // 移除所有導航項目的 active 類
-                navItems.forEach(nav => nav.classList.remove('active'));
-                
-                // 顯示主頁面並設置官方資料頁籤為活動狀態
-                mainPage.classList.remove('hidden');
-                const officialTab = document.querySelector('[data-page="official"]');
-                if (officialTab) {
-                    officialTab.classList.add('active');
-                    // 重新載入條碼資料
-                    loadBarcodes();
-                    console.log('已切換到官方資料頁面');
+                // 處理「今天不再顯示」選項
+                if (dontShowCheckbox && dontShowCheckbox.checked) {
+                    localStorage.setItem('lastShownAnnouncement', new Date().toDateString());
                 }
+
+                // 關閉公告視窗
+                if (announcementModal && announcementOverlay) {
+                    announcementModal.classList.remove('active');
+                    announcementOverlay.classList.remove('active');
+                    console.log('公告視窗已關閉');
+                }
+                
+                // 重置編輯狀態
+                if (announcementContent) {
+                    announcementContent.contentEditable = false;
+                    announcementContent.classList.remove('editable');
+                    announcementContent.dataset.isEditing = 'false';
+                    console.log('編輯狀態已重置');
+                }
+
+                // 切換到官方資料頁面
+                const mainPage = document.getElementById('mainPage');
+                const pages = document.querySelectorAll('.page');
+                const navItems = document.querySelectorAll('.nav-item');
+                
+                if (mainPage && pages.length > 0) {
+                    // 先隱藏所有頁面
+                    pages.forEach(page => page.classList.add('hidden'));
+                    console.log('所有頁面已隱藏');
+                    
+                    // 移除所有導航項目的 active 類
+                    navItems.forEach(nav => nav.classList.remove('active'));
+                    
+                    // 顯示主頁面並設置官方資料頁籤為活動狀態
+                    mainPage.classList.remove('hidden');
+                    const officialTab = document.querySelector('[data-page="official"]');
+                    if (officialTab) {
+                        officialTab.classList.add('active');
+                        // 重新載入條碼資料
+                        loadBarcodes();
+                        console.log('已切換到官方資料頁面');
+                    }
+                }
+            } catch (error) {
+                console.error('處理公告關閉時發生錯誤:', error);
+                alert('處理失敗：' + error.message);
             }
-        };
+        });
         console.log('關閉按鈕事件已綁定');
     }
 
     // 點擊遮罩層關閉公告
     if (announcementOverlay) {
-        announcementOverlay.onclick = () => {
+        announcementOverlay.addEventListener('click', async () => {
             console.log('遮罩層被點擊');
-            if (announcementModal) {
-                announcementModal.classList.remove('active');
-                announcementOverlay.classList.remove('active');
-                console.log('透過遮罩層關閉公告視窗');
-            }
             
-            // 重置編輯狀態
-            if (announcementContent) {
-                announcementContent.contentEditable = false;
-                announcementContent.classList.remove('editable');
-                announcementContent.dataset.isEditing = 'false';
+            const user = firebase.auth().currentUser;
+            const isOfficial = user && user.email === 'apple0902303636@gmail.com';
+
+            try {
+                // 如果是官方帳號，儲存修改
+                if (isOfficial) {
+                    console.log('儲存公告內容:', announcementContent.innerHTML);
+                    await barcodeService.db.collection('official').doc('announcement').set({
+                        content: announcementContent.innerHTML,
+                        lastUpdated: firebase.firestore.Timestamp.fromDate(new Date('2025-04-06T05:16:21Z'))
+                    });
+                    console.log('公告已更新');
+                }
+
+                // 關閉公告視窗
+                if (announcementModal) {
+                    announcementModal.classList.remove('active');
+                    announcementOverlay.classList.remove('active');
+                    console.log('透過遮罩層關閉公告視窗');
+                }
+                
+                // 重置編輯狀態
+                if (announcementContent) {
+                    announcementContent.contentEditable = false;
+                    announcementContent.classList.remove('editable');
+                    announcementContent.dataset.isEditing = 'false';
+                }
+            } catch (error) {
+                console.error('處理公告關閉時發生錯誤:', error);
+                alert('處理失敗：' + error.message);
             }
-        };
+        });
         console.log('遮罩層事件已綁定');
     }
 
     // 側邊欄公告按鈕點擊事件
     if (showAnnouncementBtn) {
-        showAnnouncementBtn.onclick = () => {
+        showAnnouncementBtn.addEventListener('click', () => {
             console.log('側邊欄公告按鈕被點擊');
             showAnnouncement();
-        };
+        });
         console.log('側邊欄公告按鈕事件已綁定');
     }
     
