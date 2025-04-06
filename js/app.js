@@ -455,25 +455,31 @@ function showBarcodeDetails(barcode) {
     });
 }
 
-// 初始化事件監聽
-document.addEventListener('DOMContentLoaded', () => {
-    // 漢堡選單點擊事件
-    const menuToggleBtn = document.getElementById('menuToggle');
-    const sidebar = document.querySelector('.sidebar');
-    const mainContent = document.querySelector('.main-content');
+// 側邊欄切換
+function toggleSidebar() {
+    console.log('切換側邊欄');
+    sidebar.classList.toggle('active');
+    mainContent.classList.toggle('sidebar-active');
+}
 
-    function toggleSidebar() {
-        sidebar.classList.toggle('active');
-        mainContent.classList.toggle('sidebar-active');
-    }
-
+// 確保 DOM 元素已載入
+if (menuToggleBtn && sidebar && mainContent) {
+    // 點擊漢堡選單按鈕
     menuToggleBtn.addEventListener('click', (e) => {
+        console.log('點擊漢堡選單按鈕');
         e.stopPropagation();  // 防止事件冒泡
         toggleSidebar();
     });
 
+    // 點擊側邊欄內部不關閉
+    sidebar.addEventListener('click', (e) => {
+        console.log('點擊側邊欄');
+        e.stopPropagation();
+    });
+
     // 點擊文件任何地方關閉選單
     document.addEventListener('click', (e) => {
+        console.log('點擊文件');
         // 如果點擊的不是側邊欄或漢堡選單按鈕，且側邊欄是開啟狀態
         if (!sidebar.contains(e.target) && 
             !menuToggleBtn.contains(e.target) && 
@@ -484,30 +490,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 處理視窗大小改變
     window.addEventListener('resize', () => {
+        console.log('視窗大小改變');
         if (window.innerWidth > 768) {
             sidebar.classList.remove('active');
             mainContent.classList.remove('sidebar-active');
         }
     });
-    
-    // 開發者公告按鈕點擊事件
-    const showAnnouncementBtn = document.getElementById('showAnnouncementBtn');
-    if (showAnnouncementBtn) {
-        showAnnouncementBtn.addEventListener('click', () => {
-            const announcementModal = document.getElementById('developerAnnouncement');
-            announcementModal.classList.add('active');
-            
-            // 在手機版時，點擊後關閉側邊欄
-            if (window.innerWidth <= 768) {
-                sidebar.classList.remove('active');
-                mainContent.classList.remove('sidebar-active');
-            }
-        });
-    }
-    
-    // 初始化公告功能
-    initializeAnnouncement();
-});
+}
+
+// 開發者公告按鈕點擊事件
+const showAnnouncementBtn = document.getElementById('showAnnouncementBtn');
+if (showAnnouncementBtn) {
+    showAnnouncementBtn.addEventListener('click', () => {
+        const announcementModal = document.getElementById('developerAnnouncement');
+        announcementModal.classList.add('active');
+        
+        // 在手機版時，點擊後關閉側邊欄
+        if (window.innerWidth <= 768) {
+            sidebar.classList.remove('active');
+            mainContent.classList.remove('sidebar-active');
+        }
+    });
+}
+
+// 初始化公告功能
+initializeAnnouncement();
 
 searchInput.addEventListener('input', () => {
     loadBarcodes();
@@ -633,7 +640,7 @@ document.querySelector('#scanPage .btn-back').addEventListener('click', () => {
 });
 
 // 側邊欄導航點擊事件
-document.querySelectorAll('.nav-item').forEach(item => {
+navItems.forEach(item => {
     item.addEventListener('click', () => {
         const page = item.getAttribute('data-page');
         console.log('切換到頁面:', page);
@@ -642,16 +649,36 @@ document.querySelectorAll('.nav-item').forEach(item => {
         document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
         
         // 移除所有導航項目的 active 類
-        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+        navItems.forEach(nav => nav.classList.remove('active'));
         
         // 添加當前導航項目的 active 類
         item.classList.add('active');
         
         // 根據頁面類型顯示對應內容
         switch (page) {
+            case 'official':
+                console.log('顯示官方資料頁面');
+                document.getElementById('mainPage').classList.remove('hidden');
+                if (html5QrcodeScanner) {
+                    html5QrcodeScanner.clear();
+                    html5QrcodeScanner = null;
+                }
+                loadBarcodes();
+                break;
+                
+            case 'personal':
+                console.log('顯示個人資料頁面');
+                document.getElementById('mainPage').classList.remove('hidden');
+                if (html5QrcodeScanner) {
+                    html5QrcodeScanner.clear();
+                    html5QrcodeScanner = null;
+                }
+                loadBarcodes();
+                break;
+                
             case 'scan':
                 console.log('顯示掃描頁面');
-                scanPage.classList.remove('hidden');
+                document.getElementById('scanPage').classList.remove('hidden');
                 if (!html5QrcodeScanner) {
                     initializeScanner();
                 }
@@ -676,22 +703,12 @@ document.querySelectorAll('.nav-item').forEach(item => {
                 uploadModal.style.visibility = 'visible';
                 updateUploadPreview();
                 break;
-                
-            case 'official':
-            case 'personal':
-                if (html5QrcodeScanner) {
-                    html5QrcodeScanner.clear();
-                    html5QrcodeScanner = null;
-                }
-                document.getElementById('mainPage').classList.remove('hidden');
-                loadBarcodes();
-                break;
         }
         
         // 在手機版時，點擊選單項目後關閉側邊欄
         if (window.innerWidth <= 768) {
-            sidebar.classList.toggle('active');
-            mainContent.classList.toggle('sidebar-active');
+            sidebar.classList.remove('active');
+            mainContent.classList.remove('sidebar-active');
         }
     });
 });
