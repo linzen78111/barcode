@@ -991,16 +991,21 @@ async function showAnnouncement() {
         
         // 檢查是否為官方帳號
         const user = firebase.auth().currentUser;
-        console.log('目前登入的用戶:', user?.email);  // 新增日誌
+        console.log('目前登入的用戶:', user?.email);
         const isOfficial = user && user.email === 'apple0902303636@gmail.com';
-        console.log('是否為官方帳號:', isOfficial);  // 新增日誌
+        console.log('是否為官方帳號:', isOfficial);
 
         // 設置公告內容
         if (announcementDoc.exists) {
             const { content } = announcementDoc.data();
             announcementContent.innerHTML = content || '暫無公告';
         } else {
-            announcementContent.innerHTML = '暫無公告';
+            // 如果公告文件不存在，建立預設公告
+            await barcodeService.db.collection('system').doc('announcement').set({
+                content: '歡迎使用條碼系統！',
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            announcementContent.innerHTML = '歡迎使用條碼系統！';
         }
 
         // 如果是官方帳號，直接進入編輯模式
@@ -1008,12 +1013,12 @@ async function showAnnouncement() {
             announcementContent.contentEditable = true;
             announcementContent.classList.add('editable');
             isEditing = true;
-            console.log('已進入編輯模式');  // 新增日誌
+            console.log('已進入編輯模式');
         } else {
             announcementContent.contentEditable = false;
             announcementContent.classList.remove('editable');
             isEditing = false;
-            console.log('一般瀏覽模式');  // 新增日誌
+            console.log('一般瀏覽模式');
         }
 
         // 顯示公告
@@ -1021,6 +1026,7 @@ async function showAnnouncement() {
         announcementOverlay.classList.add('active');
     } catch (error) {
         console.error('載入公告失敗:', error);
+        alert('載入公告失敗，請稍後再試');
     }
 }
 
@@ -1037,7 +1043,7 @@ async function initializeAnnouncement() {
     closeButton.addEventListener('click', async () => {
         const user = firebase.auth().currentUser;
         const isOfficial = user && user.email === 'apple0902303636@gmail.com';
-        console.log('關閉時檢查 - 是否為官方帳號:', isOfficial);  // 新增日誌
+        console.log('關閉時檢查 - 是否為官方帳號:', isOfficial);
 
         // 如果是官方帳號且正在編輯，則儲存內容
         if (isOfficial && isEditing) {
@@ -1085,7 +1091,7 @@ async function initializeAnnouncement() {
             officialTab.classList.add('active');
             // 重新載入條碼資料
             loadBarcodes();
-            console.log('已切換到官方資料頁面');  // 新增日誌
+            console.log('已切換到官方資料頁面');
         }
     });
 
@@ -1112,4 +1118,34 @@ async function initializeAnnouncement() {
 document.addEventListener('DOMContentLoaded', () => {
     initializeAnnouncement();
     // ... 其他初始化代碼 ...
+});
+
+// 初始化系統設定
+async function initializeSystemSettings() {
+    try {
+        // 檢查系統公告文件是否存在
+        const announcementDoc = await barcodeService.db.collection('system').doc('announcement').get();
+        
+        // 如果公告文件不存在，建立預設公告
+        if (!announcementDoc.exists) {
+            await barcodeService.db.collection('system').doc('announcement').set({
+                content: '歡迎使用條碼系統！',
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log('已建立預設公告');
+        }
+    } catch (error) {
+        console.error('初始化系統設定失敗:', error);
+    }
+}
+
+// 在應用程式啟動時初始化
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        await initializeSystemSettings();
+        initializeAnnouncement();
+        // ... 其他初始化程式 ...
+    } catch (error) {
+        console.error('應用程式初始化失敗:', error);
+    }
 }); 
