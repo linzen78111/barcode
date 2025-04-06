@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <rect width="512" height="512" fill="#4a90e2" rx="128"/>
+    <g transform="translate(85.33, 128)" fill="white">
+        <!-- Barcode lines -->
+        <rect x="0" y="0" width="21.33" height="256"/>
+        <rect x="42.67" y="0" width="10.67" height="256"/>
+        <rect x="74.67" y="0" width="32" height="256"/>
+        <rect x="128" y="0" width="10.67" height="256"/>
+        <rect x="160" y="0" width="21.33" height="256"/>
+        <rect x="202.67" y="0" width="32" height="256"/>
+        <rect x="256" y="0" width="21.33" height="256"/>
+        <rect x="298.67" y="0" width="10.67" height="256"/>
+        <rect x="330.67" y="0" width="10.67" height="256"/>
+    </g>
+</svg> 

@@ -1,8 +1,8 @@
 {
     "name": "條碼掃描系統",
     "short_name": "條碼掃描",
-    "description": "便利商店條碼掃描與管理系統",
-    "start_url": "/",
+    "description": "一個簡單的條碼掃描和管理系統",
+    "start_url": "./index.html",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#4a90e2",

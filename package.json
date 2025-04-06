@@ -1,0 +1,11 @@
+{
+  "name": "barcode-icon-converter",
+  "version": "1.0.0",
+  "description": "Convert SVG icons to PNG for PWA",
+  "main": "convert-icons.js",
+  "dependencies": {
+    "canvas": "^2.11.2",
+    "jsdom": "^22.1.0",
+    "svg2img": "^1.0.0-beta.2"
+  }
+} 
