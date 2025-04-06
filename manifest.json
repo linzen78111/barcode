@@ -2,7 +2,8 @@
     "name": "條碼掃描系統",
     "short_name": "條碼掃描",
     "description": "一個簡單的條碼掃描和管理系統",
-    "start_url": "./index.html",
+    "start_url": "./",
+    "scope": "./",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#4a90e2",
@@ -11,12 +12,14 @@
         {
             "src": "assets/icon-192x192.png",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any maskable"
         },
         {
             "src": "assets/icon-512x512.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any maskable"
         }
     ]
 } 

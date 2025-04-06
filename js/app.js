@@ -1353,11 +1353,26 @@ async function handleLoginSuccess(user) {
 async function googleLogin() {
     try {
         const provider = new firebase.auth.GoogleAuthProvider();
-        const result = await firebase.auth().signInWithPopup(provider);
-        await handleLoginSuccess(result.user);
+        provider.setCustomParameters({
+            prompt: 'select_account'
+        });
+
+        // 檢查是否為 PWA 模式
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            console.log('PWA 模式：使用 signInWithRedirect');
+            // 儲存當前狀態
+            sessionStorage.setItem('login_pending', 'true');
+            await firebase.auth().signInWithRedirect(provider);
+        } else {
+            console.log('瀏覽器模式：使用 signInWithPopup');
+            const result = await firebase.auth().signInWithPopup(provider);
+            await handleLoginSuccess(result.user);
+        }
     } catch (error) {
         console.error('Google 登入失敗:', error);
         alert('登入失敗：' + error.message);
+        // 清除登入狀態
+        sessionStorage.removeItem('login_pending');
     }
 }
 
@@ -1366,11 +1381,31 @@ document.getElementById('googleLoginBtn').addEventListener('click', googleLogin)
 
 // Firebase 身份驗證狀態變更監聽
 firebase.auth().onAuthStateChanged(async (user) => {
+    console.log('身份驗證狀態變更:', user ? '已登入' : '未登入');
+    
     if (user) {
         await handleLoginSuccess(user);
+        // 清除登入狀態
+        sessionStorage.removeItem('login_pending');
     } else {
         // 用戶未登入，顯示登入頁面
         document.getElementById('loginPage').classList.remove('hidden');
         document.getElementById('mainPage').classList.add('hidden');
     }
+});
+
+// 處理重定向登入結果
+firebase.auth().getRedirectResult().then(async (result) => {
+    console.log('處理重定向登入結果');
+    if (result.user) {
+        console.log('重定向登入成功');
+        await handleLoginSuccess(result.user);
+        // 清除登入狀態
+        sessionStorage.removeItem('login_pending');
+    }
+}).catch((error) => {
+    console.error('重定向登入失敗:', error);
+    alert('登入失敗：' + error.message);
+    // 清除登入狀態
+    sessionStorage.removeItem('login_pending');
 }); 
