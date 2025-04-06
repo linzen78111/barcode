@@ -981,22 +981,6 @@ async function initializeData() {
 // 開發者公告功能
 let isEditing = false;
 
-// 檢查是否為官方帳號
-async function isOfficialAccount() {
-    const user = firebase.auth().currentUser;
-    if (!user) return false;
-    return user.email === 'apple0902303636@gmail.com';
-}
-
-// 檢查今天是否已經顯示過公告
-function hasShownTodayAnnouncement() {
-    const lastShown = localStorage.getItem('lastShownAnnouncement');
-    if (!lastShown) return false;
-    
-    const today = new Date().toDateString();
-    return lastShown === today;
-}
-
 // 顯示公告
 async function showAnnouncement() {
     try {
@@ -1007,7 +991,9 @@ async function showAnnouncement() {
         
         // 檢查是否為官方帳號
         const user = firebase.auth().currentUser;
+        console.log('目前登入的用戶:', user?.email);  // 新增日誌
         const isOfficial = user && user.email === 'apple0902303636@gmail.com';
+        console.log('是否為官方帳號:', isOfficial);  // 新增日誌
 
         // 設置公告內容
         if (announcementDoc.exists) {
@@ -1022,17 +1008,17 @@ async function showAnnouncement() {
             announcementContent.contentEditable = true;
             announcementContent.classList.add('editable');
             isEditing = true;
+            console.log('已進入編輯模式');  // 新增日誌
         } else {
             announcementContent.contentEditable = false;
             announcementContent.classList.remove('editable');
             isEditing = false;
+            console.log('一般瀏覽模式');  // 新增日誌
         }
 
         // 顯示公告
-        if (!hasShownTodayAnnouncement()) {
-            announcementModal.classList.add('active');
-            announcementOverlay.classList.add('active');
-        }
+        announcementModal.classList.add('active');
+        announcementOverlay.classList.add('active');
     } catch (error) {
         console.error('載入公告失敗:', error);
     }
@@ -1051,6 +1037,7 @@ async function initializeAnnouncement() {
     closeButton.addEventListener('click', async () => {
         const user = firebase.auth().currentUser;
         const isOfficial = user && user.email === 'apple0902303636@gmail.com';
+        console.log('關閉時檢查 - 是否為官方帳號:', isOfficial);  // 新增日誌
 
         // 如果是官方帳號且正在編輯，則儲存內容
         if (isOfficial && isEditing) {
@@ -1081,13 +1068,24 @@ async function initializeAnnouncement() {
         isEditing = false;
 
         // 切換到官方資料頁面
-        document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+        const mainPage = document.getElementById('mainPage');
+        const pages = document.querySelectorAll('.page');
+        const navItems = document.querySelectorAll('.nav-item');
+        
+        // 先隱藏所有頁面
+        pages.forEach(page => page.classList.add('hidden'));
+        
+        // 移除所有導航項目的 active 類
+        navItems.forEach(nav => nav.classList.remove('active'));
+        
+        // 顯示主頁面並設置官方資料頁籤為活動狀態
+        mainPage.classList.remove('hidden');
         const officialTab = document.querySelector('[data-page="official"]');
         if (officialTab) {
             officialTab.classList.add('active');
-            document.getElementById('mainPage').classList.remove('hidden');
+            // 重新載入條碼資料
             loadBarcodes();
+            console.log('已切換到官方資料頁面');  // 新增日誌
         }
     });
 
@@ -1105,9 +1103,7 @@ async function initializeAnnouncement() {
     // 側邊欄公告按鈕點擊事件
     if (showAnnouncementBtn) {
         showAnnouncementBtn.addEventListener('click', () => {
-            announcementModal.classList.add('active');
-            announcementOverlay.classList.add('active');
-            showAnnouncement();
+            showAnnouncement();  // 直接調用 showAnnouncement 函數
         });
     }
 }
