@@ -156,39 +156,54 @@ body {
 }
 
 .content-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    background: white;
     position: sticky;
     top: 0;
     z-index: 100;
+    background: white;
+    padding: 1rem;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+}
+
+.search-container {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.search-container input[type="text"] {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.search-container select {
+    width: auto;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 1rem;
+    background-color: white;
+    cursor: pointer;
+}
+
+@media screen and (max-width: 768px) {
+    .search-container {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .search-container select {
+        width: 100%;
+    }
 }
 
 .btn-toggle {
     display: none;
-}
-
-.search-container {
-    flex: 1;
-    display: flex;
-    gap: 0.5rem;
-}
-
-#searchInput {
-    flex: 1;
-    padding: 8px 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-}
-
-#storeFilter {
-    padding: 8px 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    min-width: 150px;
 }
 
 /* 條碼列表 */
