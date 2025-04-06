@@ -1219,23 +1219,33 @@ async function initializeSystemSettings() {
             return;
         }
 
+        console.log('開始初始化系統設定');
         const isOfficial = user.email === 'apple0902303636@gmail.com';
         
-        // 直接在 official 集合下建立 announcement 文件
-        await barcodeService.db.collection('official').doc('announcement').set({
-            content: '歡迎使用條碼系統！',
-            lastUpdated: firebase.firestore.Timestamp.fromDate(new Date('2025-04-06T05:16:21Z'))  // UTC+8 13:16:21
-        });
+        // 檢查 announcement 文件是否存在
+        const announcementDoc = await barcodeService.db.collection('official').doc('announcement').get();
         
-        console.log('已建立 announcement 文件');
+        // 如果文件不存在或是官方帳號，則建立/更新文件
+        if (!announcementDoc.exists || isOfficial) {
+            console.log('建立/更新 announcement 文件');
+            await barcodeService.db.collection('official').doc('announcement').set({
+                content: '歡迎使用條碼系統！',
+                lastUpdated: firebase.firestore.Timestamp.fromDate(new Date('2025-04-06T05:16:21Z'))
+            }, { merge: true });
+            console.log('announcement 文件已建立/更新');
+        }
+        
+        console.log('系統設定初始化完成');
     } catch (error) {
         console.error('初始化系統設定失敗:', error);
+        throw error;
     }
 }
 
 // 登入成功後的處理
 async function handleLoginSuccess(user) {
     try {
+        console.log('開始處理登入成功');
         // 更新用戶資訊
         const userAvatar = document.getElementById('userAvatar');
         const userName = document.getElementById('userName');
@@ -1255,18 +1265,34 @@ async function handleLoginSuccess(user) {
         // 初始化系統設定
         await initializeSystemSettings();
         
+        // 初始化公告功能
+        await initializeAnnouncement();
+        
         // 檢查是否需要顯示公告
         const lastShown = localStorage.getItem('lastShownAnnouncement');
         const today = new Date().toDateString();
         
+        console.log('檢查公告顯示狀態:', { lastShown, today });
+        
         if (lastShown !== today) {
-            // 如果今天還沒顯示過，就顯示公告
-            await showAnnouncement();
+            console.log('今天尚未顯示公告，準備顯示');
+            // 確保 DOM 元素已經完全載入
+            setTimeout(async () => {
+                try {
+                    await showAnnouncement();
+                    console.log('公告已顯示');
+                } catch (error) {
+                    console.error('顯示公告時發生錯誤:', error);
+                }
+            }, 1000);
+        } else {
+            console.log('今天已經顯示過公告');
         }
         
         // 載入條碼資料
         await loadBarcodes();
         
+        console.log('登入成功處理完成');
     } catch (error) {
         console.error('登入後處理失敗:', error);
         alert('初始化失敗：' + error.message);
