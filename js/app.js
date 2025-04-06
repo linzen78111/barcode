@@ -622,8 +622,8 @@ document.querySelectorAll('.nav-item').forEach(item => {
                 
             case 'manual':
                 console.log('顯示手動輸入頁面');
-                document.getElementById('localDataPage').classList.remove('hidden');
-                updateLocalDataList();
+                document.querySelector('.main-content').style.display = 'block';
+                document.getElementById('manualPage').classList.remove('hidden');
                 break;
                 
             case 'upload':
@@ -654,9 +654,8 @@ document.querySelectorAll('.nav-item').forEach(item => {
         
         // 在手機版時，點擊選單項目後關閉側邊欄
         if (window.innerWidth <= 768) {
-            sidebar.classList.add('collapsed');
-            mainContent.classList.add('expanded');
-            overlay.classList.remove('active');
+            sidebar.classList.toggle('active');
+            mainContent.classList.toggle('sidebar-active');
         }
     });
 });
