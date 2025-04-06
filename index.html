@@ -17,13 +17,7 @@
     <!-- 開發者公告 -->
     <div id="developerAnnouncement" class="announcement-modal">
         <div class="announcement-content">
-            <div style="display: flex; align-items: center; margin-bottom: 1.5rem;">
-                <h2>開發者公告</h2>
-                <button id="editAnnouncement" class="edit-btn">
-                    <i class="fas fa-edit"></i>
-                    編輯公告
-                </button>
-            </div>
+            <h2>開發者公告</h2>
             <div id="announcementContent" class="announcement-text">
                 <!-- 公告內容將動態插入 -->
             </div>
@@ -32,7 +26,10 @@
                     <input type="checkbox" id="dontShowToday">
                     今天不再顯示
                 </label>
-                <button id="closeAnnouncement" class="btn-close">關閉</button>
+                <button id="closeAnnouncement" class="btn-close">
+                    <span class="save-text">儲存並關閉</span>
+                    <span class="close-text">關閉</span>
+                </button>
             </div>
         </div>
     </div>
