@@ -14,6 +14,29 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
+    <!-- 開發者公告 -->
+    <div id="developerAnnouncement" class="announcement-modal">
+        <div class="announcement-content">
+            <div style="display: flex; align-items: center; margin-bottom: 1.5rem;">
+                <h2>開發者公告</h2>
+                <button id="editAnnouncement" class="edit-btn">
+                    <i class="fas fa-edit"></i>
+                    編輯公告
+                </button>
+            </div>
+            <div id="announcementContent" class="announcement-text">
+                <!-- 公告內容將動態插入 -->
+            </div>
+            <div class="announcement-actions">
+                <label class="dont-show-today">
+                    <input type="checkbox" id="dontShowToday">
+                    今天不再顯示
+                </label>
+                <button id="closeAnnouncement" class="btn-close">關閉</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 漢堡選單按鈕 -->
     <button class="menu-toggle" id="menuToggle">☰</button>
 
@@ -60,6 +83,10 @@
                         <button id="uploadButton" class="nav-item" data-page="upload">
                             <i class="fas fa-upload"></i>
                             批量上傳
+                        </button>
+                        <button id="showAnnouncementBtn" class="nav-item">
+                            <i class="fas fa-bullhorn"></i>
+                            開發者公告
                         </button>
                     </nav>
                     <button id="logoutBtn" class="btn-logout">

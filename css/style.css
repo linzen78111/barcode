@@ -1095,4 +1095,114 @@ body {
 /* 隱藏內容區域的小漢堡按鈕 */
 .btn-toggle {
     display: none;
+}
+
+/* 開發者公告樣式 */
+.announcement-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+}
+
+.announcement-modal.active {
+    display: flex;
+}
+
+.announcement-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.announcement-content h2 {
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+}
+
+.announcement-text {
+    margin-bottom: 2rem;
+    line-height: 1.6;
+    color: #333;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 1rem;
+}
+
+.announcement-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.dont-show-today {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #666;
+    cursor: pointer;
+}
+
+.dont-show-today input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.btn-close {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s;
+}
+
+.btn-close:hover {
+    background-color: #357abd;
+}
+
+/* 編輯公告按鈕 */
+#editAnnouncement {
+    margin-left: auto;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    display: none;
+}
+
+#editAnnouncement.show {
+    display: block;
+}
+
+/* 編輯模式樣式 */
+.announcement-text.editable {
+    border: 1px solid var(--border-color);
+    padding: 1rem;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+}
+
+.announcement-text.editable:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
 } 

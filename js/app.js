@@ -466,7 +466,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // 漢堡選單點擊事件
     menuToggleBtn.addEventListener('click', toggleSidebar);
     
-    // 其他事件監聽...
+    // 開發者公告按鈕點擊事件
+    const showAnnouncementBtn = document.getElementById('showAnnouncementBtn');
+    if (showAnnouncementBtn) {
+        showAnnouncementBtn.addEventListener('click', () => {
+            const announcementModal = document.getElementById('developerAnnouncement');
+            announcementModal.classList.add('active');
+            
+            // 在手機版時，點擊後關閉側邊欄
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('active');
+                mainContent.classList.remove('sidebar-active');
+            }
+        });
+    }
+    
+    // 初始化公告功能
+    initializeAnnouncement();
+    
+    // 其他初始化...
 });
 
 searchInput.addEventListener('input', () => {
@@ -958,4 +976,114 @@ async function initializeData() {
         console.error('初始化失敗:', error);
         alert('資料載入失敗，請重新整理頁面');
     }
-} 
+}
+
+// 開發者公告功能
+let isEditing = false;
+
+// 檢查是否為官方帳號
+async function isOfficialAccount() {
+    const user = firebase.auth().currentUser;
+    if (!user) return false;
+    return user.email === 'apple0902303636@gmail.com';
+}
+
+// 檢查今天是否已經顯示過公告
+function hasShownTodayAnnouncement() {
+    const lastShown = localStorage.getItem('lastShownAnnouncement');
+    if (!lastShown) return false;
+    
+    const today = new Date().toDateString();
+    return lastShown === today;
+}
+
+// 顯示公告
+async function showAnnouncement() {
+    if (hasShownTodayAnnouncement()) return;
+
+    try {
+        const announcementDoc = await barcodeService.db.collection('system').doc('announcement').get();
+        if (!announcementDoc.exists) return;
+
+        const { content, lastUpdated } = announcementDoc.data();
+        const announcementModal = document.getElementById('developerAnnouncement');
+        const announcementContent = document.getElementById('announcementContent');
+        
+        announcementContent.innerHTML = content || '暫無公告';
+        announcementModal.classList.add('active');
+
+        // 檢查是否為官方帳號並顯示編輯按鈕
+        const isOfficial = await isOfficialAccount();
+        const editButton = document.getElementById('editAnnouncement');
+        editButton.style.display = isOfficial ? 'block' : 'none';
+    } catch (error) {
+        console.error('載入公告失敗:', error);
+    }
+}
+
+// 初始化公告功能
+async function initializeAnnouncement() {
+    const closeButton = document.getElementById('closeAnnouncement');
+    const dontShowCheckbox = document.getElementById('dontShowToday');
+    const editButton = document.getElementById('editAnnouncement');
+    const announcementContent = document.getElementById('announcementContent');
+
+    // 關閉按鈕事件
+    closeButton.addEventListener('click', () => {
+        if (dontShowCheckbox.checked) {
+            localStorage.setItem('lastShownAnnouncement', new Date().toDateString());
+        }
+        document.getElementById('developerAnnouncement').classList.remove('active');
+    });
+
+    // 編輯按鈕事件
+    editButton.addEventListener('click', async () => {
+        const isOfficial = await isOfficialAccount();
+        if (!isOfficial) {
+            alert('只有官方帳號可以編輯公告');
+            return;
+        }
+
+        if (!isEditing) {
+            // 進入編輯模式
+            isEditing = true;
+            announcementContent.contentEditable = true;
+            announcementContent.classList.add('editable');
+            editButton.textContent = '儲存公告';
+            editButton.style.backgroundColor = '#ff9800';
+        } else {
+            // 儲存編輯
+            isEditing = false;
+            announcementContent.contentEditable = false;
+            announcementContent.classList.remove('editable');
+            editButton.textContent = '編輯公告';
+            editButton.style.backgroundColor = '#4CAF50';
+
+            try {
+                // 儲存到 Firestore
+                await barcodeService.db.collection('system').doc('announcement').set({
+                    content: announcementContent.innerHTML,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                alert('公告已更新！');
+            } catch (error) {
+                console.error('儲存公告失敗:', error);
+                alert('儲存失敗：' + error.message);
+            }
+        }
+    });
+
+    // 在用戶登入後自動顯示公告
+    firebase.auth().onAuthStateChanged(async (user) => {
+        if (user) {
+            showAnnouncement();
+        }
+    });
+}
+
+// 在頁面載入時初始化公告功能
+document.addEventListener('DOMContentLoaded', () => {
+    initializeAnnouncement();
+    // ... 其他初始化代碼 ...
+}); 
