@@ -1353,119 +1353,23 @@ async function handleLoginSuccess(user) {
 async function googleLogin() {
     try {
         const provider = new firebase.auth.GoogleAuthProvider();
-        provider.setCustomParameters({
-            prompt: 'select_account',
-            display: 'popup',
-            // 強制使用內嵌方式
-            ux_mode: 'popup'
-        });
-        
-        // 使用 signInWithRedirect 但設定為內嵌模式
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-            console.log('PWA 模式：使用內嵌登入');
-            // 儲存當前頁面狀態
-            const currentState = {
-                path: window.location.pathname,
-                timestamp: Date.now()
-            };
-            localStorage.setItem('loginState', JSON.stringify(currentState));
-            
-            // 建立內嵌登入框
-            const loginFrame = document.createElement('div');
-            loginFrame.id = 'loginFrame';
-            loginFrame.style.cssText = `
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                width: 90%;
-                max-width: 400px;
-                height: 500px;
-                background: white;
-                border-radius: 12px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                z-index: 10000;
-                overflow: hidden;
-            `;
-            document.body.appendChild(loginFrame);
-            
-            // 建立遮罩層
-            const overlay = document.createElement('div');
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0,0,0,0.5);
-                z-index: 9999;
-            `;
-            document.body.appendChild(overlay);
-            
-            try {
-                const result = await firebase.auth().signInWithPopup(provider);
-                await handleLoginSuccess(result.user);
-            } finally {
-                // 移除登入框和遮罩層
-                document.body.removeChild(loginFrame);
-                document.body.removeChild(overlay);
-            }
-        } else {
-            console.log('瀏覽器模式：使用一般登入');
-            const result = await firebase.auth().signInWithPopup(provider);
-            await handleLoginSuccess(result.user);
-        }
+        const result = await firebase.auth().signInWithPopup(provider);
+        await handleLoginSuccess(result.user);
     } catch (error) {
         console.error('Google 登入失敗:', error);
-        
-        // 如果是網路錯誤，顯示更友善的錯誤訊息
-        if (error.code === 'auth/network-request-failed') {
-            alert('網路連線不穩定，請檢查您的網路連線後再試一次');
-        } else if (error.code === 'auth/popup-closed-by-user') {
-            alert('登入視窗被關閉，請再試一次');
-        } else {
-            alert('登入失敗：' + error.message);
-        }
-        
-        // 確保登入頁面可見
-        document.getElementById('loginPage').classList.remove('hidden');
-        document.getElementById('mainPage').classList.add('hidden');
+        alert('登入失敗：' + error.message);
     }
 }
 
 // 登入按鈕點擊事件
-const googleLoginBtn = document.getElementById('googleLoginBtn');
-if (googleLoginBtn) {
-    googleLoginBtn.addEventListener('click', () => {
-        console.log('點擊登入按鈕');
-        // 顯示載入中狀態
-        googleLoginBtn.disabled = true;
-        googleLoginBtn.textContent = '登入中...';
-        
-        googleLogin().finally(() => {
-            // 恢復按鈕狀態
-            googleLoginBtn.disabled = false;
-            googleLoginBtn.textContent = '使用 Google 登入';
-        });
-    });
-} else {
-    console.error('找不到登入按鈕');
-}
+document.getElementById('googleLoginBtn').addEventListener('click', googleLogin);
 
 // Firebase 身份驗證狀態變更監聽
 firebase.auth().onAuthStateChanged(async (user) => {
-    console.log('身份驗證狀態變更:', user ? '已登入' : '未登入');
-    try {
-        if (user) {
-            await handleLoginSuccess(user);
-        } else {
-            // 用戶未登入，顯示登入頁面
-            document.getElementById('loginPage').classList.remove('hidden');
-            document.getElementById('mainPage').classList.add('hidden');
-        }
-    } catch (error) {
-        console.error('處理身份驗證狀態變更失敗:', error);
-        // 確保用戶可以看到登入頁面
+    if (user) {
+        await handleLoginSuccess(user);
+    } else {
+        // 用戶未登入，顯示登入頁面
         document.getElementById('loginPage').classList.remove('hidden');
         document.getElementById('mainPage').classList.add('hidden');
     }
