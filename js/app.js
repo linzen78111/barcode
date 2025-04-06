@@ -1,5 +1,5 @@
 // 獲取 DOM 元素
-const toggleSidebarBtn = document.getElementById('toggleSidebar');
+const menuToggleBtn = document.getElementById('menuToggle');
 const sidebar = document.querySelector('.sidebar');
 const mainContent = document.querySelector('.main-content');
 const searchInput = document.getElementById('searchInput');
@@ -455,15 +455,18 @@ function showBarcodeDetails(barcode) {
     });
 }
 
-// 事件監聽
-toggleSidebarBtn.addEventListener('click', () => {
-    sidebar.classList.toggle('collapsed');
-    mainContent.classList.toggle('expanded');
+// 側邊欄切換
+function toggleSidebar() {
+    sidebar.classList.toggle('active');
+    mainContent.classList.toggle('sidebar-active');
+}
+
+// 初始化事件監聽
+document.addEventListener('DOMContentLoaded', () => {
+    // 漢堡選單點擊事件
+    menuToggleBtn.addEventListener('click', toggleSidebar);
     
-    // 在手機版時同時處理遮罩層
-    if (window.innerWidth <= 768) {
-        overlay.classList.toggle('active');
-    }
+    // 其他事件監聽...
 });
 
 searchInput.addEventListener('input', () => {
