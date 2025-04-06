@@ -1353,8 +1353,15 @@ async function handleLoginSuccess(user) {
 async function googleLogin() {
     try {
         const provider = new firebase.auth.GoogleAuthProvider();
-        const result = await firebase.auth().signInWithPopup(provider);
-        await handleLoginSuccess(result.user);
+        // 在 PWA 模式下使用 redirect 方式
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            console.log('使用 redirect 方式登入');
+            await firebase.auth().signInWithRedirect(provider);
+        } else {
+            console.log('使用 popup 方式登入');
+            const result = await firebase.auth().signInWithPopup(provider);
+            await handleLoginSuccess(result.user);
+        }
     } catch (error) {
         console.error('Google 登入失敗:', error);
         alert('登入失敗：' + error.message);
@@ -1373,4 +1380,15 @@ firebase.auth().onAuthStateChanged(async (user) => {
         document.getElementById('loginPage').classList.remove('hidden');
         document.getElementById('mainPage').classList.add('hidden');
     }
+});
+
+// 處理重定向登入結果
+firebase.auth().getRedirectResult().then(async (result) => {
+    if (result.user) {
+        console.log('重定向登入成功');
+        await handleLoginSuccess(result.user);
+    }
+}).catch((error) => {
+    console.error('重定向登入失敗:', error);
+    alert('登入失敗：' + error.message);
 }); 
