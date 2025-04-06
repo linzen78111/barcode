@@ -672,166 +672,6 @@ document.querySelector('#manualPage .btn-cancel').addEventListener('click', () =
     document.querySelector('[data-page="official"]').click();
 });
 
-// 檢查是否為官方帳號並顯示上傳按鈕
-async function checkAndShowUploadButton() {
-    try {
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            console.log('使用者未登入');
-            return;
-        }
-        
-        // 所有登入用戶都可以看到上傳按鈕
-        uploadButton.classList.remove('hidden');
-    } catch (error) {
-        console.error('檢查用戶狀態失敗:', error);
-    }
-}
-
-// 初始化拖放區域
-function initializeDropZone() {
-    dropZone.addEventListener('click', () => fileInput.click());
-    
-    dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropZone.classList.add('dragover');
-    });
-    
-    dropZone.addEventListener('dragleave', () => {
-        dropZone.classList.remove('dragover');
-    });
-    
-    dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('dragover');
-        const file = e.dataTransfer.files[0];
-        if (file) handleFile(file);
-    });
-    
-    fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) handleFile(file);
-    });
-}
-
-// 處理上傳的檔案
-async function handleFile(file) {
-    if (!file.name.match(/\.(csv|xlsx)$/i)) {
-        alert('請上傳 CSV 或 Excel 檔案');
-        return;
-    }
-    
-    try {
-        const data = await readFile(file);
-        showPreview(data);
-        btnUpload.disabled = false;
-    } catch (error) {
-        console.error('讀取檔案失敗:', error);
-        alert('讀取檔案失敗：' + error.message);
-    }
-}
-
-// 讀取檔案內容
-async function readFile(file) {
-    if (!file) {
-        throw new Error('請選擇檔案');
-    }
-
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        
-        reader.onload = async (e) => {
-            try {
-                let data;
-                if (file.name.endsWith('.csv')) {
-                    data = parseCSV(e.target.result);
-                } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
-                    const workbook = XLSX.read(e.target.result, { type: 'binary' });
-                    data = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-                } else {
-                    throw new Error('不支援的檔案格式，請使用 CSV 或 Excel 檔案');
-                }
-                
-                if (!data || data.length === 0) {
-                    throw new Error('檔案中沒有資料');
-                }
-                
-                resolve(data);
-            } catch (error) {
-                reject(error);
-            }
-        };
-        
-        reader.onerror = () => reject(new Error('檔案讀取失敗'));
-        
-        if (file.name.endsWith('.csv')) {
-            reader.readAsText(file);
-        } else {
-            reader.readAsBinaryString(file);
-        }
-    });
-}
-
-// 解析 CSV 檔案
-function parseCSV(csv) {
-    const lines = csv.split('\n');
-    const headers = lines[0].split(',').map(h => h.trim());
-    const data = [];
-    
-    for (let i = 1; i < lines.length; i++) {
-        if (!lines[i].trim()) continue;
-        
-        const values = lines[i].split(',').map(v => v.trim());
-        const row = {};
-        
-        headers.forEach((header, index) => {
-            row[header] = values[index];
-        });
-        
-        data.push(row);
-    }
-    
-    return data;
-}
-
-// 顯示預覽
-function showPreview(data) {
-    console.log('顯示預覽資料:', data);
-    if (!data || !data.length) {
-        alert('檔案中沒有資料');
-        return;
-    }
-    
-    const headers = Object.keys(data[0]);
-    let html = '<table><thead><tr>';
-    
-    // 表頭
-    headers.forEach(header => {
-        html += `<th>${header}</th>`;
-    });
-    html += '</tr></thead><tbody>';
-    
-    // 資料行（最多顯示 5 筆）
-    data.slice(0, 5).forEach(row => {
-        html += '<tr>';
-        headers.forEach(header => {
-            html += `<td>${row[header] || ''}</td>`;
-        });
-        html += '</tr>';
-    });
-    
-    html += '</tbody></table>';
-    
-    previewTable.innerHTML = html;
-    previewArea.classList.remove('hidden');
-}
-
-// 更新上傳預覽
-function updateUploadPreview() {
-    const uploadCount = document.getElementById('uploadCount');
-    uploadCount.textContent = localBarcodes.length;
-}
-
 // 處理上傳確認
 document.querySelector('.btn-upload').addEventListener('click', async () => {
     try {
@@ -842,6 +682,7 @@ document.querySelector('.btn-upload').addEventListener('click', async () => {
         const user = firebase.auth().currentUser;
         if (!user) throw new Error('請先登入');
         
+        // 檢查是否為官方帳號
         const isOfficial = await barcodeService.isOfficialAccount();
         
         // 上傳資料到 Firestore
@@ -850,6 +691,7 @@ document.querySelector('.btn-upload').addEventListener('click', async () => {
             let docRef;
             
             if (isOfficial) {
+                // 官方帳號的資料存到 official 集合
                 docRef = barcodeService.db
                     .collection('official')
                     .doc('data')
@@ -860,6 +702,7 @@ document.querySelector('.btn-upload').addEventListener('click', async () => {
                     
                 barcode.fromOfficial = true;
             } else {
+                // 一般用戶的資料存到 users 集合下的個人目錄
                 docRef = barcodeService.db
                     .collection('users')
                     .doc(user.uid)
@@ -901,6 +744,17 @@ document.querySelector('.btn-upload').addEventListener('click', async () => {
         document.querySelector('.btn-upload').textContent = '確認上傳';
     }
 });
+
+// 更新上傳預覽
+function updateUploadPreview() {
+    const uploadCount = document.getElementById('uploadCount');
+    uploadCount.textContent = localBarcodes.length;
+}
+
+// 上傳按鈕永遠顯示（移除檢查邏輯）
+async function checkAndShowUploadButton() {
+    uploadButton.classList.remove('hidden');
+}
 
 // 獲取 DOM 元素
 const overlay = document.querySelector('.overlay');
