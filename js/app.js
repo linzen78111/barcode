@@ -985,58 +985,83 @@ let isEditing = false;
 async function showAnnouncement() {
     try {
         const user = firebase.auth().currentUser;
+        console.log('檢查用戶登入狀態:', user ? '已登入' : '未登入');
         if (!user) {
             console.log('用戶未登入');
             return;
         }
 
-        // 從 users/announcement 讀取公告
-        const announcementDoc = await barcodeService.db.collection('users').doc('announcement').get();
+        console.log('開始讀取公告文件');
+        // 從 official/announcement 讀取公告
+        const announcementDoc = await barcodeService.db.collection('official').doc('announcement').get();
+        console.log('公告文件讀取結果:', {
+            exists: announcementDoc.exists,
+            data: announcementDoc.exists ? announcementDoc.data() : null
+        });
+
         const announcementModal = document.getElementById('developerAnnouncement');
         const announcementOverlay = document.getElementById('announcementOverlay');
         const announcementContent = document.getElementById('announcementContent');
+        
+        console.log('檢查 DOM 元素:', {
+            modal: !!announcementModal,
+            overlay: !!announcementOverlay,
+            content: !!announcementContent
+        });
         
         console.log('目前登入的用戶:', user.email);
         const isOfficial = user.email === 'apple0902303636@gmail.com';
         console.log('是否為官方帳號:', isOfficial);
 
         // 設置公告內容
-        if (announcementDoc.exists && announcementDoc.data().content) {
+        if (announcementDoc.exists && announcementDoc.data()?.content) {
             const data = announcementDoc.data();
+            console.log('設置現有公告內容:', data.content);
             announcementContent.innerHTML = data.content;
         } else {
+            console.log('公告不存在或內容為空');
             // 如果是官方帳號且公告不存在，建立預設公告
             if (isOfficial) {
-                await barcodeService.db.collection('users').doc('announcement').set({
+                console.log('建立預設公告');
+                const defaultAnnouncement = {
                     content: '歡迎使用條碼系統！',
-                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-                    updatedBy: user.email
-                });
-                announcementContent.innerHTML = '歡迎使用條碼系統！';
+                    lastUpdated: firebase.firestore.Timestamp.fromDate(new Date('2025-04-06T05:16:21Z'))  // UTC+8 13:16:21
+                };
+                
+                try {
+                    await barcodeService.db.collection('official').doc('announcement').set(defaultAnnouncement, { merge: true });
+                    console.log('預設公告建立成功');
+                    announcementContent.innerHTML = defaultAnnouncement.content;
+                } catch (error) {
+                    console.error('建立預設公告失敗:', error);
+                    announcementContent.innerHTML = '建立預設公告失敗';
+                }
             } else {
+                console.log('設置暫無公告訊息');
                 announcementContent.innerHTML = '暫無公告';
             }
         }
 
         // 只有官方帳號可以編輯
         if (isOfficial) {
+            console.log('啟用編輯模式');
             announcementContent.contentEditable = true;
             announcementContent.classList.add('editable');
             isEditing = true;
-            console.log('已進入編輯模式');
         } else {
+            console.log('設置為唯讀模式');
             announcementContent.contentEditable = false;
             announcementContent.classList.remove('editable');
             isEditing = false;
-            console.log('一般瀏覽模式');
         }
 
         // 顯示公告
+        console.log('顯示公告視窗');
         announcementModal.classList.add('active');
         announcementOverlay.classList.add('active');
     } catch (error) {
-        console.error('載入公告失敗:', error);
-        alert('載入公告失敗，請稍後再試');
+        console.error('載入公告時發生錯誤:', error);
+        alert('載入公告失敗：' + error.message);
     }
 }
 
@@ -1072,10 +1097,9 @@ async function initializeAnnouncement() {
             // 只有官方帳號可以儲存修改
             if (isOfficial && isEditing) {
                 try {
-                    await barcodeService.db.collection('users').doc('announcement').set({
+                    await barcodeService.db.collection('official').doc('announcement').set({
                         content: announcementContent.innerHTML,
-                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-                        updatedBy: user.email
+                        lastUpdated: firebase.firestore.Timestamp.fromDate(new Date('2025-04-06T05:16:21Z'))  // UTC+8 13:16:21
                     });
                     console.log('公告已更新');
                 } catch (error) {
@@ -1174,18 +1198,13 @@ async function initializeSystemSettings() {
 
         const isOfficial = user.email === 'apple0902303636@gmail.com';
         
-        // 檢查公告文件是否存在
-        const announcementDoc = await barcodeService.db.collection('users').doc('announcement').get();
+        // 直接在 official 集合下建立 announcement 文件
+        await barcodeService.db.collection('official').doc('announcement').set({
+            content: '歡迎使用條碼系統！',
+            lastUpdated: firebase.firestore.Timestamp.fromDate(new Date('2025-04-06T05:16:21Z'))  // UTC+8 13:16:21
+        });
         
-        // 如果是官方帳號且公告不存在，建立預設公告
-        if (isOfficial && (!announcementDoc.exists || !announcementDoc.data().content)) {
-            await barcodeService.db.collection('users').doc('announcement').set({
-                content: '歡迎使用條碼系統！',
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-                updatedBy: user.email
-            });
-            console.log('已建立預設公告');
-        }
+        console.log('已建立 announcement 文件');
     } catch (error) {
         console.error('初始化系統設定失敗:', error);
     }
