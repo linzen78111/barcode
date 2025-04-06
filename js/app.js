@@ -1044,6 +1044,7 @@ async function initializeAnnouncement() {
     const dontShowCheckbox = document.getElementById('dontShowToday');
     const announcementContent = document.getElementById('announcementContent');
     const showAnnouncementBtn = document.getElementById('showAnnouncementBtn');
+    const announcementModal = document.getElementById('developerAnnouncement');
     const announcementOverlay = document.getElementById('announcementOverlay');
 
     // 關閉按鈕事件
@@ -1058,7 +1059,7 @@ async function initializeAnnouncement() {
                     content: announcementContent.innerHTML,
                     lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                alert('公告已更新！');
+                console.log('公告已更新');
             } catch (error) {
                 console.error('儲存公告失敗:', error);
                 alert('儲存失敗：' + error.message);
@@ -1071,7 +1072,6 @@ async function initializeAnnouncement() {
         }
 
         // 關閉公告視窗
-        const announcementModal = document.getElementById('developerAnnouncement');
         announcementModal.classList.remove('active');
         announcementOverlay.classList.remove('active');
         
@@ -1093,16 +1093,18 @@ async function initializeAnnouncement() {
 
     // 點擊遮罩層關閉公告
     announcementOverlay.addEventListener('click', () => {
-        const announcementModal = document.getElementById('developerAnnouncement');
         announcementModal.classList.remove('active');
         announcementOverlay.classList.remove('active');
+        
+        // 重置編輯狀態
+        announcementContent.contentEditable = false;
+        announcementContent.classList.remove('editable');
+        isEditing = false;
     });
 
     // 側邊欄公告按鈕點擊事件
     if (showAnnouncementBtn) {
         showAnnouncementBtn.addEventListener('click', () => {
-            const announcementModal = document.getElementById('developerAnnouncement');
-            const announcementOverlay = document.getElementById('announcementOverlay');
             announcementModal.classList.add('active');
             announcementOverlay.classList.add('active');
             showAnnouncement();
