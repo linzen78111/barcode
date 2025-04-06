@@ -1349,22 +1349,22 @@ async function handleLoginSuccess(user) {
     }
 }
 
-// 檢測是否為 iOS PWA
-function isIOSPWA() {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                  window.navigator.standalone;
-    return isIOS && isPWA;
+// 檢測是否為 PWA 模式
+function isPWAMode() {
+    // 檢查是否為 standalone 模式（已安裝為 PWA）
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                        window.navigator.standalone;
+    return isStandalone;
 }
 
-// 產生登入 URL
-function generateLoginURL() {
-    // 取得目前的 URL 作為重定向目標
-    const redirectURL = window.location.origin;
-    // 加入時間戳記避免快取
-    const timestamp = new Date().getTime();
-    // 建立登入 URL，包含必要參數
-    return `${window.location.origin}/login.html?redirect=${encodeURIComponent(redirectURL)}&t=${timestamp}`;
+// 產生外部登入 URL
+function getExternalLoginUrl() {
+    // 取得目前的完整 URL 作為登入後的返回地址
+    const returnUrl = encodeURIComponent(window.location.origin);
+    // 加上時間戳避免快取
+    const timestamp = Date.now();
+    // 回到原始網站的登入頁面，但帶上返回參數
+    return `${window.location.origin}?mode=login&return=${returnUrl}&t=${timestamp}`;
 }
 
 // Google 登入
@@ -1372,31 +1372,28 @@ async function googleLogin() {
     try {
         console.log("開始 Google 登入流程");
         
+        // 檢查是否在 PWA 模式
+        if (isPWAMode()) {
+            console.log("PWA 模式：重定向到外部瀏覽器");
+            // 儲存當前路徑，以便登入後返回
+            sessionStorage.setItem('loginReturnPath', window.location.pathname);
+            // 重定向到外部登入頁面
+            window.location.href = getExternalLoginUrl();
+            return;
+        }
+
+        console.log("瀏覽器模式：使用一般登入流程");
         const provider = new firebase.auth.GoogleAuthProvider();
         provider.addScope('profile');
         provider.addScope('email');
 
-        // 設定登入選項
         const auth = firebase.auth();
         await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-
-        // 檢查是否為 iOS PWA
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                     window.navigator.standalone;
         
-        if (isIOS && isPWA) {
-            console.log("iOS PWA 環境：使用 signInWithRedirect");
-            // 在 iOS PWA 環境下使用 redirect 方式
-            await auth.signInWithRedirect(provider);
-        } else {
-            console.log("一般環境：使用 signInWithPopup");
-            // 在其他環境下使用 popup 方式
-            const result = await auth.signInWithPopup(provider);
-            if (result.user) {
-                console.log("登入成功");
-                await handleLoginSuccess(result.user);
-            }
+        const result = await auth.signInWithPopup(provider);
+        if (result.user) {
+            console.log("登入成功");
+            await handleLoginSuccess(result.user);
         }
     } catch (error) {
         console.error("登入錯誤:", error);
@@ -1404,26 +1401,55 @@ async function googleLogin() {
     }
 }
 
-// 檢查登入重定向結果
-async function checkRedirectResult() {
+// 檢查並處理登入重定向
+async function handleLoginRedirect() {
     try {
-        console.log("檢查登入重定向結果");
-        const auth = firebase.auth();
-        const result = await auth.getRedirectResult();
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('mode');
         
-        if (result.user) {
-            console.log("重定向登入成功");
-            await handleLoginSuccess(result.user);
+        if (mode === 'login') {
+            console.log("處理外部登入");
+            // 清除 URL 參數
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            // 執行登入
+            const provider = new firebase.auth.GoogleAuthProvider();
+            provider.addScope('profile');
+            provider.addScope('email');
+            
+            const auth = firebase.auth();
+            await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+            
+            const result = await auth.signInWithPopup(provider);
+            if (result.user) {
+                console.log("外部登入成功");
+                await handleLoginSuccess(result.user);
+                
+                // 取得返回 URL
+                const returnUrl = urlParams.get('return');
+                if (returnUrl) {
+                    window.location.href = returnUrl;
+                }
+            }
+        } else if (isPWAMode()) {
+            // 檢查是否有儲存的返回路徑
+            const returnPath = sessionStorage.getItem('loginReturnPath');
+            if (returnPath) {
+                sessionStorage.removeItem('loginReturnPath');
+                if (window.location.pathname !== returnPath) {
+                    window.location.pathname = returnPath;
+                }
+            }
         }
     } catch (error) {
-        console.error("重定向登入錯誤:", error);
-        alert("登入失敗：" + error.message);
+        console.error("處理登入重定向錯誤:", error);
+        alert("登入處理失敗：" + error.message);
     }
 }
 
-// 在頁面載入時檢查重定向結果
+// 在頁面載入時檢查登入狀態和重定向
 window.addEventListener('load', () => {
-    checkRedirectResult();
+    handleLoginRedirect();
 });
 
 // 登入按鈕點擊事件
