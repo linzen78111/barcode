@@ -1162,12 +1162,17 @@ async function initializeAnnouncement() {
                     console.log('編輯狀態已重置');
                 }
 
-                // 設置官方資料頁面為預設頁面
+                // 切換到官方資料頁面
+                console.log('切換到官方資料頁面');
+                // 隱藏所有頁面
+                document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+                // 顯示主頁面
+                document.getElementById('mainPage').classList.remove('hidden');
+                // 移除所有導航項目的 active 類
+                navItems.forEach(nav => nav.classList.remove('active'));
+                // 設置官方資料頁籤為活動狀態
                 const officialTab = document.querySelector('[data-page="official"]');
                 if (officialTab) {
-                    // 移除所有導航項目的 active 類
-                    navItems.forEach(nav => nav.classList.remove('active'));
-                    // 設置官方資料頁籤為活動狀態
                     officialTab.classList.add('active');
                     // 載入條碼資料
                     await loadBarcodes();
@@ -1217,6 +1222,22 @@ async function initializeAnnouncement() {
                     announcementContent.contentEditable = false;
                     announcementContent.classList.remove('editable');
                     announcementContent.dataset.isEditing = 'false';
+                }
+
+                // 切換到官方資料頁面
+                console.log('切換到官方資料頁面');
+                // 隱藏所有頁面
+                document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+                // 顯示主頁面
+                document.getElementById('mainPage').classList.remove('hidden');
+                // 移除所有導航項目的 active 類
+                navItems.forEach(nav => nav.classList.remove('active'));
+                // 設置官方資料頁籤為活動狀態
+                const officialTab = document.querySelector('[data-page="official"]');
+                if (officialTab) {
+                    officialTab.classList.add('active');
+                    // 載入條碼資料
+                    await loadBarcodes();
                 }
             } catch (error) {
                 console.error('處理公告關閉時發生錯誤:', error);
