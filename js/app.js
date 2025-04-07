@@ -19,6 +19,7 @@ const btnUpload = document.querySelector('.btn-upload');
 // 音效物件
 const confirmSound = new Audio('SystemMessage_warning1.wav');
 const processingSound = new Audio('SystemMessage_warning2.wav');
+const errorSound = new Audio('ERROR.WAV');
 
 // 手動輸入相關元素
 const manualModal = document.getElementById('manualModal');
@@ -681,6 +682,7 @@ navItems.forEach(item => {
             case 'upload':
                 console.log('顯示上傳確認對話框');
                 if (localBarcodes.length === 0) {
+                    errorSound.play();
                     await showCustomAlert('沒有可上傳的資料！', 'error');
                     document.querySelector('[data-page="manual"]').click();
                     return;
