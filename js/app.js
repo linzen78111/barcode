@@ -1143,6 +1143,7 @@ async function initializeAnnouncement() {
 
                 // 處理「今天不再顯示」選項
                 if (dontShowCheckbox && dontShowCheckbox.checked) {
+                    console.log('用戶選擇今天不再顯示');
                     localStorage.setItem('lastShownAnnouncement', new Date().toDateString());
                 }
 
@@ -1161,30 +1162,17 @@ async function initializeAnnouncement() {
                     console.log('編輯狀態已重置');
                 }
 
-                // 切換到官方資料頁面
-                const mainPage = document.getElementById('mainPage');
-                const pages = document.querySelectorAll('.page');
-                const navItems = document.querySelectorAll('.nav-item');
-                
-                if (mainPage && pages.length > 0) {
-                    // 先隱藏所有頁面
-                    pages.forEach(page => page.classList.add('hidden'));
-                    console.log('所有頁面已隱藏');
-                    
+                // 設置官方資料頁面為預設頁面
+                const officialTab = document.querySelector('[data-page="official"]');
+                if (officialTab) {
                     // 移除所有導航項目的 active 類
                     navItems.forEach(nav => nav.classList.remove('active'));
-                    
-                    // 顯示主頁面並設置官方資料頁籤為活動狀態
-                    mainPage.classList.remove('hidden');
-                    const officialTab = document.querySelector('[data-page="official"]');
-                    if (officialTab) {
-                        officialTab.classList.add('active');
-                        // 重新載入條碼資料
-                        loadBarcodes();
-                        console.log('已切換到官方資料頁面');
-                    }
+                    // 設置官方資料頁籤為活動狀態
+                    officialTab.classList.add('active');
+                    // 載入條碼資料
+                    await loadBarcodes();
                 }
-    } catch (error) {
+            } catch (error) {
                 console.error('處理公告關閉時發生錯誤:', error);
                 await showCustomAlert('處理失敗：' + error.message, 'error');
             }
@@ -1209,6 +1197,12 @@ async function initializeAnnouncement() {
                         lastUpdated: firebase.firestore.Timestamp.fromDate(new Date('2025-04-06T05:16:21Z'))
                     });
                     console.log('公告已更新');
+                }
+
+                // 處理「今天不再顯示」選項
+                if (dontShowCheckbox && dontShowCheckbox.checked) {
+                    console.log('用戶選擇今天不再顯示');
+                    localStorage.setItem('lastShownAnnouncement', new Date().toDateString());
                 }
 
                 // 關閉公告視窗
@@ -1302,14 +1296,29 @@ async function handleLoginSuccess(user) {
         // 初始化公告功能
         await initializeAnnouncement();
         
-        // 檢查是否需要顯示公告
+        // 設置官方資料頁面為預設頁面並顯示
+        const officialTab = document.querySelector('[data-page="official"]');
+        if (officialTab) {
+            // 隱藏所有頁面
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            // 移除所有導航項目的 active 類
+            navItems.forEach(nav => nav.classList.remove('active'));
+            // 設置官方資料頁籤為活動狀態
+            officialTab.classList.add('active');
+            // 顯示主頁面
+            document.getElementById('mainPage').classList.remove('hidden');
+            // 載入條碼資料
+            await loadBarcodes();
+        }
+        
+        // 檢查是否今天選擇了不再顯示
         const lastShown = localStorage.getItem('lastShownAnnouncement');
         const today = new Date().toDateString();
         
         console.log('檢查公告顯示狀態:', { lastShown, today });
         
         if (lastShown !== today) {
-            console.log('今天尚未顯示公告，準備顯示');
+            console.log('顯示今日公告');
             // 確保 DOM 元素已經完全載入
             setTimeout(async () => {
                 try {
@@ -1320,11 +1329,8 @@ async function handleLoginSuccess(user) {
                 }
             }, 1000);
         } else {
-            console.log('今天已經顯示過公告');
+            console.log('用戶選擇今天不再顯示公告');
         }
-        
-        // 載入條碼資料
-        await loadBarcodes();
         
         console.log('登入成功處理完成');
     } catch (error) {
