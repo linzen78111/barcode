@@ -315,55 +315,33 @@ async function loadBarcodes() {
         displayBarcodes(filteredBarcodes);
     } catch (error) {
         console.error('載入條碼資料失敗:', error);
-        alert('載入條碼資料失敗，請稍後再試');
+        await showCustomAlert('載入條碼資料失敗，請稍後再試', 'error');
     }
 }
 
 // 顯示條碼資料
 function displayBarcodes(barcodes) {
-    barcodeList.innerHTML = '';
+    const container = document.getElementById('barcodeList');
+    container.innerHTML = '';
     
     if (barcodes.length === 0) {
-        barcodeList.innerHTML = '<div class="no-data">沒有找到相關資料</div>';
+        const noData = document.createElement('div');
+        noData.className = 'no-data';
+        noData.textContent = '沒有找到相關資料';
+        container.appendChild(noData);
         return;
     }
     
     barcodes.forEach(barcode => {
-        const item = document.createElement('div');
-        item.className = 'barcode-item';
+        const barcodeItem = renderBarcodeItem(barcode);
         
-        // 如果描述中包含搜尋文字，則顯示部分描述
-        const searchText = searchInput.value.toLowerCase();
-        let descriptionPreview = '';
-        
-        if (searchText && barcode.description) {
-            const description = barcode.description.toLowerCase();
-            const index = description.indexOf(searchText);
-            if (index !== -1) {
-                // 擷取搜尋文字前後的一些內容
-                const start = Math.max(0, index - 20);
-                const end = Math.min(description.length, index + searchText.length + 20);
-                descriptionPreview = `
-                    <p class="description-preview">
-                        ${start > 0 ? '...' : ''}
-                        ${barcode.description.substring(start, end)}
-                        ${end < description.length ? '...' : ''}
-                    </p>
-                `;
-            }
+        // 為每個卡片添加點擊事件
+        const item = barcodeItem.querySelector('.barcode-item');
+        if (item) {
+            item.addEventListener('click', () => showBarcodeDetails(barcode));
         }
         
-        item.innerHTML = `
-            <h3>${barcode.name || '未命名商品'}</h3>
-            <p>條碼: ${barcode.code || '無'}</p>
-            <p>價格: $${barcode.price || 0}</p>
-            <p>商店: ${barcode.store || '未知'}</p>
-            ${descriptionPreview}
-            ${barcode.fromOfficial ? '<span class="official-badge">官方資料</span>' : '<span class="personal-badge">個人資料</span>'}
-        `;
-        
-        item.addEventListener('click', () => showBarcodeDetails(barcode));
-        barcodeList.appendChild(item);
+        container.appendChild(barcodeItem);
     });
 }
 
@@ -618,10 +596,10 @@ barcodeForm.addEventListener('submit', async (e) => {
         // 重新開始掃描
         html5QrcodeScanner.resume();
         
-        alert('條碼已加入暫存清單！');
+        await showCustomAlert('條碼已加入暫存清單！');
     } catch (error) {
         console.error('儲存條碼資料失敗:', error);
-        alert('儲存失敗：' + error.message);
+        await showCustomAlert('儲存失敗：' + error.message, 'error');
     }
 });
 
@@ -655,7 +633,7 @@ document.querySelector('#scanPage .btn-back').addEventListener('click', () => {
 
 // 側邊欄導航點擊事件
 navItems.forEach(item => {
-    item.addEventListener('click', () => {
+    item.addEventListener('click', async () => {
         const page = item.getAttribute('data-page');
         console.log('切換到頁面:', page);
         
@@ -699,7 +677,7 @@ navItems.forEach(item => {
             case 'upload':
                 console.log('顯示上傳確認對話框');
                 if (localBarcodes.length === 0) {
-                    alert('沒有可上傳的資料！');
+                    await showCustomAlert('沒有可上傳的資料！', 'error');
                     document.querySelector('[data-page="manual"]').click();
                     return;
                 }
@@ -751,7 +729,7 @@ document.querySelector('.btn-upload').addEventListener('click', async () => {
             });
         }
 
-        alert('上傳成功！');
+        await showCustomAlert('上傳成功！');
         localBarcodes = []; // 清空本地暫存
         saveLocalBarcodes(); // 儲存清空後的暫存資料
         updateLocalDataList(); // 更新本地暫存列表顯示
@@ -764,7 +742,7 @@ document.querySelector('.btn-upload').addEventListener('click', async () => {
         document.querySelector('[data-page="official"]').click();
     } catch (error) {
         console.error('上傳失敗:', error);
-        alert('上傳失敗：' + error.message);
+        await showCustomAlert('上傳失敗：' + error.message, 'error');
     }
 });
 
@@ -879,7 +857,7 @@ manualForm.addEventListener('submit', async (e) => {
     updateLocalDataList();
     
     // 顯示成功訊息
-    alert('條碼已加入暫存清單！');
+    await showCustomAlert('條碼已加入暫存清單！');
     
     // 重置表單並關閉對話框
     manualForm.reset();
@@ -922,10 +900,10 @@ if (addManualBtn) {
 }
 
 // 上傳全部按鈕
-uploadLocalDataBtn.addEventListener('click', () => {
+uploadLocalDataBtn.addEventListener('click', async () => {
     console.log('點擊上傳全部按鈕');
     if (localBarcodes.length === 0) {
-        alert('沒有可上傳的資料！');
+        await showCustomAlert('沒有可上傳的資料！', 'error');
         return;
     }
     // 更新上傳預覽
@@ -1089,7 +1067,7 @@ async function showAnnouncement() {
         announcementOverlay.classList.add('active');
     } catch (error) {
         console.error('載入公告時發生錯誤:', error);
-        alert('載入公告失敗：' + error.message);
+        await showCustomAlert('載入公告失敗：' + error.message, 'error');
     }
 }
 
@@ -1183,7 +1161,7 @@ async function initializeAnnouncement() {
                 }
     } catch (error) {
                 console.error('處理公告關閉時發生錯誤:', error);
-                alert('處理失敗：' + error.message);
+                await showCustomAlert('處理失敗：' + error.message, 'error');
             }
         });
         console.log('關閉按鈕事件已綁定');
@@ -1223,7 +1201,7 @@ async function initializeAnnouncement() {
                 }
             } catch (error) {
                 console.error('處理公告關閉時發生錯誤:', error);
-                alert('處理失敗：' + error.message);
+                await showCustomAlert('處理失敗：' + error.message, 'error');
             }
         });
         console.log('遮罩層事件已綁定');
@@ -1326,7 +1304,7 @@ async function handleLoginSuccess(user) {
         console.log('登入成功處理完成');
     } catch (error) {
         console.error('登入後處理失敗:', error);
-        alert('初始化失敗：' + error.message);
+        await showCustomAlert('初始化失敗：' + error.message, 'error');
     }
 }
 
@@ -1355,7 +1333,131 @@ async function googleLogin() {
             const provider = new firebase.auth.GoogleAuthProvider();
             await auth.signInWithRedirect(provider);
         } else {
-            alert("登入失敗：" + error.message);
+            await showCustomAlert("登入失敗：" + error.message, 'error');
         }
     }
+}
+
+// 自定義 alert 函數
+async function showCustomAlert(message, type = 'info') {
+    return new Promise((resolve) => {
+        // 移除任何現有的對話框
+        const existingDialogs = document.querySelectorAll('.browser-dialog, .browser-dialog-overlay');
+        existingDialogs.forEach(dialog => dialog.remove());
+
+        // 創建新的對話框
+        const dialog = document.createElement('div');
+        dialog.className = 'browser-dialog';
+        dialog.innerHTML = `
+            <div class="browser-dialog-content">
+                <div class="browser-dialog-header">
+                    <h3>${type === 'error' ? '錯誤' : '提示'}</h3>
+                </div>
+                <div class="browser-dialog-body">
+                    ${message}
+                </div>
+                <div class="browser-dialog-footer">
+                    <button class="browser-dialog-btn browser-dialog-btn-primary" id="alertConfirmBtn">確定</button>
+                </div>
+            </div>
+        `;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'browser-dialog-overlay';
+
+        // 添加到 body
+        document.body.appendChild(overlay);
+        document.body.appendChild(dialog);
+
+        // 顯示動畫
+        requestAnimationFrame(() => {
+            overlay.classList.add('active');
+            dialog.classList.add('active');
+        });
+
+        // 綁定按鈕事件
+        const confirmBtn = dialog.querySelector('#alertConfirmBtn');
+        const closeDialog = () => {
+            overlay.classList.remove('active');
+            dialog.classList.remove('active');
+            setTimeout(() => {
+                overlay.remove();
+                dialog.remove();
+                resolve();
+            }, 300);
+        };
+
+        // 點擊確定按鈕關閉
+        confirmBtn.onclick = closeDialog;
+
+        // ESC 鍵關閉
+        document.addEventListener('keydown', function escListener(e) {
+            if (e.key === 'Escape') {
+                document.removeEventListener('keydown', escListener);
+                closeDialog();
+            }
+        });
+
+        // 點擊背景不關閉，但會有視覺反饋
+        overlay.onclick = (e) => {
+            if (e.target === overlay) {
+                dialog.style.transform = 'translate(-50%, -50%) scale(0.98)';
+                setTimeout(() => {
+                    dialog.style.transform = 'translate(-50%, -50%) scale(1)';
+                }, 100);
+            }
+        };
+    });
+}
+
+// 替換原生的 alert
+window.alert = async function(message, type = 'info') {
+    await showCustomAlert(message, type);
+};
+
+// 渲染條碼項目
+function renderBarcodeItem(data) {
+    const template = document.getElementById('barcodeItemTemplate');
+    const clone = template.content.cloneNode(true);
+    
+    // 設置商品名稱
+    clone.querySelector('.product-name').textContent = data.name || '未命名商品';
+    
+    // 設置商店標籤
+    clone.querySelector('.store-badge').textContent = data.store || '未知商店';
+    
+    // 設置條碼號碼
+    clone.querySelector('.barcode-number').textContent = data.code || '無條碼';
+    
+    // 設置價格
+    clone.querySelector('.price').textContent = data.price ? `$${data.price}` : '$0';
+    
+    // 設置描述文字（如果有的話）
+    const descriptionEl = clone.querySelector('.description-text');
+    if (data.description && data.description.trim()) {
+        descriptionEl.textContent = data.description;
+        descriptionEl.style.display = 'block';
+    } else {
+        descriptionEl.style.display = 'none';
+    }
+    
+    return clone;
+}
+
+// 更新條碼列表
+function updateBarcodeList(barcodes) {
+    const container = document.getElementById('barcodeList');
+    container.innerHTML = '';
+    
+    if (barcodes.length === 0) {
+        const noData = document.createElement('div');
+        noData.className = 'no-data';
+        noData.textContent = '沒有找到相關條碼';
+        container.appendChild(noData);
+        return;
+    }
+    
+    barcodes.forEach(barcode => {
+        container.appendChild(renderBarcodeItem(barcode));
+    });
 } 
