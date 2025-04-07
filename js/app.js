@@ -16,6 +16,10 @@ const previewArea = document.querySelector('.upload-preview');
 const previewTable = document.querySelector('.preview-table');
 const btnUpload = document.querySelector('.btn-upload');
 
+// 音效物件
+const confirmSound = new Audio('SystemMessage_warning1.wav');
+const processingSound = new Audio('SystemMessage_warning2.wav');
+
 // 手動輸入相關元素
 const manualModal = document.getElementById('manualModal');
 const manualForm = document.getElementById('manualForm');
@@ -682,6 +686,8 @@ navItems.forEach(item => {
                     return;
                 }
                 document.getElementById('mainPage').classList.remove('hidden');
+                // 播放確認音效
+                confirmSound.play();
                 uploadModal.classList.remove('hidden');
                 uploadModal.style.display = 'flex';
                 uploadModal.style.opacity = '1';
@@ -725,8 +731,9 @@ document.querySelector('.btn-upload').addEventListener('click', async () => {
         modal.classList.remove('active');
         modal.style.display = 'none';
         
-        // 顯示等待彈窗
-        await showCustomAlert('資料處理中，請稍候...', 'loading');
+        // 顯示等待彈窗並播放處理中音效
+        processingSound.play();
+        await showCustomAlert('資料處理中,請稍候...', 'loading');
         
         console.log('開始上傳本地暫存資料...');
         for (const barcode of localBarcodes) {
@@ -739,7 +746,7 @@ document.querySelector('.btn-upload').addEventListener('click', async () => {
         }
 
         // 添加延遲，讓等待彈窗顯示更久
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise(resolve => setTimeout(resolve, 3800));
 
         // 關閉等待彈窗並顯示成功訊息
         document.querySelector('.browser-dialog')?.remove();
