@@ -718,7 +718,16 @@ document.querySelector('#manualPage .btn-cancel').addEventListener('click', () =
 // 處理上傳確認
 document.querySelector('.btn-upload').addEventListener('click', async () => {
     console.log('確認上傳');
+    const modal = document.getElementById('uploadModal');
+    
     try {
+        // 隱藏上傳確認對話框
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+        
+        // 顯示等待彈窗
+        await showCustomAlert('資料處理中，請稍候...', 'loading');
+        
         console.log('開始上傳本地暫存資料...');
         for (const barcode of localBarcodes) {
             console.log('上傳條碼:', barcode);
@@ -729,19 +738,26 @@ document.querySelector('.btn-upload').addEventListener('click', async () => {
             });
         }
 
+        // 添加延遲，讓等待彈窗顯示更久
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        // 關閉等待彈窗並顯示成功訊息
+        document.querySelector('.browser-dialog')?.remove();
+        document.querySelector('.browser-dialog-overlay')?.remove();
         await showCustomAlert('上傳成功！');
+        
         localBarcodes = []; // 清空本地暫存
         saveLocalBarcodes(); // 儲存清空後的暫存資料
         updateLocalDataList(); // 更新本地暫存列表顯示
         loadBarcodes(); // 重新載入主頁面資料
         
-        // 隱藏上傳確認對話框
-        uploadModal.classList.add('hidden');
-        
         // 返回主頁面
         document.querySelector('[data-page="official"]').click();
     } catch (error) {
         console.error('上傳失敗:', error);
+        // 關閉等待彈窗並顯示錯誤訊息
+        document.querySelector('.browser-dialog')?.remove();
+        document.querySelector('.browser-dialog-overlay')?.remove();
         await showCustomAlert('上傳失敗：' + error.message, 'error');
     }
 });
@@ -1348,19 +1364,32 @@ async function showCustomAlert(message, type = 'info') {
         // 創建新的對話框
         const dialog = document.createElement('div');
         dialog.className = 'browser-dialog';
-        dialog.innerHTML = `
-            <div class="browser-dialog-content">
-                <div class="browser-dialog-header">
-                    <h3>${type === 'error' ? '錯誤' : '提示'}</h3>
+        dialog.setAttribute('data-type', type);
+        
+        // 根據類型設置不同的內容
+        if (type === 'loading') {
+            dialog.innerHTML = `
+                <div class="browser-dialog-content">
+                    <div class="browser-dialog-body">
+                        資料處理中,請稍候...
+                    </div>
                 </div>
-                <div class="browser-dialog-body">
-                    ${message}
+            `;
+        } else {
+            dialog.innerHTML = `
+                <div class="browser-dialog-content">
+                    ${type === 'error' ? '<div class="browser-dialog-header"><h3>錯誤</h3></div>' : ''}
+                    <div class="browser-dialog-body">
+                        ${message}
+                    </div>
+                    ${type !== 'loading' ? `
+                        <div class="browser-dialog-footer">
+                            <button class="browser-dialog-btn browser-dialog-btn-primary" id="alertConfirmBtn">確定</button>
+                        </div>
+                    ` : ''}
                 </div>
-                <div class="browser-dialog-footer">
-                    <button class="browser-dialog-btn browser-dialog-btn-primary" id="alertConfirmBtn">確定</button>
-                </div>
-            </div>
-        `;
+            `;
+        }
 
         const overlay = document.createElement('div');
         overlay.className = 'browser-dialog-overlay';
@@ -1375,38 +1404,44 @@ async function showCustomAlert(message, type = 'info') {
             dialog.classList.add('active');
         });
 
-        // 綁定按鈕事件
-        const confirmBtn = dialog.querySelector('#alertConfirmBtn');
-        const closeDialog = () => {
-            overlay.classList.remove('active');
-            dialog.classList.remove('active');
-            setTimeout(() => {
-                overlay.remove();
-                dialog.remove();
-                resolve();
-            }, 300);
-        };
-
-        // 點擊確定按鈕關閉
-        confirmBtn.onclick = closeDialog;
-
-        // ESC 鍵關閉
-        document.addEventListener('keydown', function escListener(e) {
-            if (e.key === 'Escape') {
-                document.removeEventListener('keydown', escListener);
-                closeDialog();
-            }
-        });
-
-        // 點擊背景不關閉，但會有視覺反饋
-        overlay.onclick = (e) => {
-            if (e.target === overlay) {
-                dialog.style.transform = 'translate(-50%, -50%) scale(0.98)';
+        // 如果不是 loading 類型，才添加關閉功能
+        if (type !== 'loading') {
+            // 綁定按鈕事件
+            const confirmBtn = dialog.querySelector('#alertConfirmBtn');
+            const closeDialog = () => {
+                dialog.classList.remove('active');
+                overlay.classList.remove('active');
                 setTimeout(() => {
-                    dialog.style.transform = 'translate(-50%, -50%) scale(1)';
-                }, 100);
-            }
-        };
+                    dialog.remove();
+                    overlay.remove();
+                    resolve();
+                }, 300);
+            };
+
+            // 點擊確定按鈕關閉
+            confirmBtn.onclick = closeDialog;
+
+            // ESC 鍵關閉
+            document.addEventListener('keydown', function escListener(e) {
+                if (e.key === 'Escape') {
+                    document.removeEventListener('keydown', escListener);
+                    closeDialog();
+                }
+            });
+
+            // 點擊背景不關閉，但會有視覺反饋
+            overlay.onclick = (e) => {
+                if (e.target === overlay) {
+                    dialog.style.transform = 'translate(-50%, -50%) scale(0.98)';
+                    setTimeout(() => {
+                        dialog.style.transform = 'translate(-50%, -50%) scale(1)';
+                    }, 100);
+                }
+            };
+        } else {
+            // 如果是 loading 類型，立即 resolve
+            resolve();
+        }
     });
 }
 
@@ -1460,4 +1495,62 @@ function updateBarcodeList(barcodes) {
     barcodes.forEach(barcode => {
         container.appendChild(renderBarcodeItem(barcode));
     });
-} 
+}
+
+// 顯示上傳確認對話框
+function showUploadModal() {
+    const modal = document.getElementById('uploadModal');
+    const uploadCount = document.getElementById('uploadCount');
+    const loadingText = document.getElementById('loadingText');
+    const uploadPreview = modal.querySelector('.upload-preview');
+    const formActions = modal.querySelector('.form-actions');
+    
+    // 重置狀態
+    loadingText.classList.remove('active');
+    uploadPreview.classList.remove('loading');
+    formActions.style.display = 'flex';
+    
+    // 設置待上傳數量
+    const count = getLocalBarcodeCount();
+    uploadCount.textContent = count;
+    
+    // 顯示對話框
+    modal.classList.add('active');
+}
+
+// 開始上傳
+async function startUpload() {
+    const modal = document.getElementById('uploadModal');
+    const loadingText = document.getElementById('loadingText');
+    const uploadPreview = modal.querySelector('.upload-preview');
+    const formActions = modal.querySelector('.form-actions');
+    
+    try {
+        // 顯示加載狀態
+        loadingText.classList.add('active');
+        uploadPreview.classList.add('loading');
+        formActions.style.display = 'none';
+        
+        // 執行上傳操作
+        await uploadLocalBarcodes();
+        
+        // 上傳成功後關閉對話框
+        modal.classList.remove('active');
+        
+        // 顯示成功提示
+        showMessage('上傳成功！');
+        
+    } catch (error) {
+        console.error('上傳失敗:', error);
+        showMessage('上傳失敗: ' + error.message, 'error');
+        
+    } finally {
+        // 重置狀態
+        loadingText.classList.remove('active');
+        uploadPreview.classList.remove('loading');
+        formActions.style.display = 'flex';
+    }
+}
+
+// 綁定上傳按鈕事件
+document.querySelector('#uploadModal .btn-upload').addEventListener('click', startUpload); 
