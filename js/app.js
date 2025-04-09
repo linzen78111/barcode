@@ -81,7 +81,7 @@ const barcodeService = {
     db: firebase.firestore(),
     
     // 載入條碼資料
-    async loadBarcodes() {
+    async loadBarcodes(store) {
         try {
             const user = firebase.auth().currentUser;
             if (!user) throw new Error('請先登入');
@@ -94,7 +94,7 @@ const barcodeService = {
                 .collection('official')
                 .doc('data')
                 .collection('stores')
-                .doc('711')
+                .doc(store)
                 .collection('barcodes')
                 .get();
             
@@ -115,7 +115,7 @@ const barcodeService = {
                 .collection('users')
                 .doc(user.uid)
                 .collection('stores')
-                .doc('711')
+                .doc(store)
                 .collection('barcodes')
                 .get();
             
@@ -287,12 +287,28 @@ const barcodeService = {
 async function loadBarcodes() {
     try {
         console.log('開始執行 loadBarcodes 函數');
-        const searchText = searchInput.value.toLowerCase();
+        
+        const searchText = searchInput.value.toLowerCase().trim();
         const store = storeFilter.value;
         const currentPage = document.querySelector('.nav-item.active').dataset.page;
         
+        // 只有在初次載入或切換頁面時才顯示載入動畫
+        const isSearching = searchText !== '' || document.activeElement === searchInput;
+        if (!isSearching) {
+            await showCustomAlert('', 'loading');
+        }
+        
         console.log('搜尋條件:', { searchText, store, currentPage });
+        
+        // 清空現有列表
+        const container = document.getElementById('barcodeList');
+        container.innerHTML = '';
+        
+        // 載入資料
         const barcodes = await barcodeService.loadBarcodes(store);
+        
+        // 儲存完整的條碼資料到全局變數，供搜尋使用
+        window.currentBarcodes = barcodes;
         
         // 根據當前頁面過濾資料
         let filteredBarcodes = barcodes.filter(barcode => {
@@ -317,9 +333,45 @@ async function loadBarcodes() {
         });
         
         console.log('過濾後資料數量:', filteredBarcodes.length);
-        displayBarcodes(filteredBarcodes);
+        
+        // 只有在非搜尋時才確保載入動畫顯示足夠時間
+        if (!isSearching) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        // 關閉載入動畫
+        document.querySelector('.browser-dialog')?.remove();
+        document.querySelector('.browser-dialog-overlay')?.remove();
+        
+        // 分批顯示資料
+        const BATCH_SIZE = 50;
+        for (let i = 0; i < filteredBarcodes.length; i += BATCH_SIZE) {
+            const batch = filteredBarcodes.slice(i, i + BATCH_SIZE);
+            batch.forEach(barcode => {
+                const barcodeItem = renderBarcodeItem(barcode);
+                if (barcodeItem) {
+                    const item = barcodeItem.querySelector('.barcode-item');
+                    if (item) {
+                        item.addEventListener('click', () => showBarcodeDetails(barcode));
+                    }
+                    container.appendChild(barcodeItem);
+                }
+            });
+        }
+        
+        // 如果沒有資料，顯示提示訊息
+        if (filteredBarcodes.length === 0) {
+            const noData = document.createElement('div');
+            noData.className = 'no-data';
+            noData.textContent = '沒有找到相關資料';
+            container.appendChild(noData);
+        }
+        
     } catch (error) {
         console.error('載入條碼資料失敗:', error);
+        // 關閉載入動畫
+        document.querySelector('.browser-dialog')?.remove();
+        document.querySelector('.browser-dialog-overlay')?.remove();
         await showCustomAlert('載入條碼資料失敗，請稍後再試', 'error');
     }
 }
@@ -499,8 +551,72 @@ if (showAnnouncementBtn) {
 // 初始化公告功能
 initializeAnnouncement();
 
+// 搜尋功能相關
+let searchTimeout;
 searchInput.addEventListener('input', () => {
-    loadBarcodes();
+    // 清除之前的計時器
+    if (searchTimeout) {
+        clearTimeout(searchTimeout);
+    }
+    
+    // 設置新的計時器，延遲 300ms 執行搜尋
+    searchTimeout = setTimeout(() => {
+        const searchText = searchInput.value.toLowerCase().trim();
+        const store = storeFilter.value;
+        const currentPage = document.querySelector('.nav-item.active').dataset.page;
+        
+        // 從已載入的資料中過濾
+        const container = document.getElementById('barcodeList');
+        
+        // 清空現有列表
+        container.innerHTML = '';
+        
+        // 根據當前頁面過濾資料
+        let filteredBarcodes = window.currentBarcodes.filter(barcode => {
+            // 根據頁面類型過濾
+            if (currentPage === 'official' && !barcode.fromOfficial) return false;
+            if (currentPage === 'personal' && barcode.fromOfficial) return false;
+            
+            // 如果沒有搜尋文字，返回所有符合頁面類型的資料
+            if (!searchText) return true;
+            
+            // 將所有可搜尋的欄位轉為小寫，避免 null 或 undefined
+            const name = (barcode.name || '').toLowerCase();
+            const code = (barcode.code || '').toLowerCase();
+            const description = (barcode.description || '').toLowerCase();
+            const store = (barcode.store || '').toLowerCase();
+            
+            // 檢查是否符合搜尋條件
+            return name.includes(searchText) || 
+                   code.includes(searchText) || 
+                   description.includes(searchText) ||
+                   store.includes(searchText);
+        });
+        
+        // 分批顯示過濾後的資料
+        const BATCH_SIZE = 50;
+        for (let i = 0; i < filteredBarcodes.length; i += BATCH_SIZE) {
+            const batch = filteredBarcodes.slice(i, i + BATCH_SIZE);
+            batch.forEach(barcode => {
+                const barcodeItem = renderBarcodeItem(barcode);
+                if (barcodeItem) {
+                    const item = barcodeItem.querySelector('.barcode-item');
+                    if (item) {
+                        item.addEventListener('click', () => showBarcodeDetails(barcode));
+                    }
+                    container.appendChild(barcodeItem);
+                }
+            });
+        }
+        
+        // 如果沒有資料，顯示提示訊息
+        if (filteredBarcodes.length === 0) {
+            const noData = document.createElement('div');
+            noData.className = 'no-data';
+            noData.textContent = '沒有找到相關資料';
+            container.appendChild(noData);
+        }
+    }, 300);
 });
 
 storeFilter.addEventListener('change', () => {
@@ -1307,9 +1423,8 @@ async function handleLoginSuccess(user) {
             userName.textContent = user.displayName;
         }
         
-        // 隱藏登入頁面，顯示主頁面
+        // 隱藏登入頁面
         document.getElementById('loginPage').classList.add('hidden');
-        document.getElementById('mainPage').classList.remove('hidden');
         
         // 初始化系統設定
         await initializeSystemSettings();
@@ -1317,22 +1432,23 @@ async function handleLoginSuccess(user) {
         // 初始化公告功能
         await initializeAnnouncement();
         
-        // 設置官方資料頁面為預設頁面並顯示
+        // 確保所有頁面都是隱藏的
+        document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+        
+        // 移除所有導航項目的 active 類
+        navItems.forEach(nav => nav.classList.remove('active'));
+        
+        // 顯示主頁面並設置官方資料頁籤為活動狀態
+        document.getElementById('mainPage').classList.remove('hidden');
         const officialTab = document.querySelector('[data-page="official"]');
         if (officialTab) {
-            // 隱藏所有頁面
-            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-            // 移除所有導航項目的 active 類
-            navItems.forEach(nav => nav.classList.remove('active'));
-            // 設置官方資料頁籤為活動狀態
             officialTab.classList.add('active');
-            // 顯示主頁面
-            document.getElementById('mainPage').classList.remove('hidden');
-            // 載入條碼資料
-            await loadBarcodes();
         }
         
-        // 檢查是否今天選擇了不再顯示
+        // 立即載入官方資料
+        await loadBarcodes();
+        
+        // 檢查是否今天選擇了不再顯示公告
         const lastShown = localStorage.getItem('lastShownAnnouncement');
         const today = new Date().toDateString();
         
@@ -1405,12 +1521,25 @@ async function showCustomAlert(message, type = 'info') {
         // 根據類型設置不同的內容
         if (type === 'loading') {
             dialog.innerHTML = `
-                <div class="browser-dialog-content">
-                    <div class="browser-dialog-body">
-                        資料處理中,請稍候...
+                <div class="browser-dialog-content" style="width: 100vw; height: 100vh; max-width: none; margin: 0; padding: 0; border-radius: 0; background: #fff; display: flex; justify-content: center; align-items: center; overflow: hidden;">
+                    <div class="browser-dialog-body" style="text-align: center; padding: 0; width: 100%; height: 100%;">
+                        <img src="SystemProcessing.bmp" alt="處理中" style="width: 100%; height: 100%; object-fit: fill;">
                     </div>
                 </div>
             `;
+            
+            // 為 loading 類型設置特殊樣式
+            dialog.style.width = '100vw';
+            dialog.style.height = '100vh';
+            dialog.style.maxWidth = 'none';
+            dialog.style.maxHeight = 'none';
+            dialog.style.margin = '0';
+            dialog.style.padding = '0';
+            dialog.style.borderRadius = '0';
+            dialog.style.transform = 'none';
+            dialog.style.top = '0';
+            dialog.style.left = '0';
+            dialog.style.background = '#fff';
         } else {
             dialog.innerHTML = `
                 <div class="browser-dialog-content">
@@ -1429,6 +1558,12 @@ async function showCustomAlert(message, type = 'info') {
 
         const overlay = document.createElement('div');
         overlay.className = 'browser-dialog-overlay';
+        
+        // 如果是 loading 類型，設置遮罩層樣式
+        if (type === 'loading') {
+            overlay.style.background = '#fff';
+            overlay.style.opacity = '1';
+        }
 
         // 添加到 body
         document.body.appendChild(overlay);
