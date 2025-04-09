@@ -292,11 +292,8 @@ async function loadBarcodes() {
         const store = storeFilter.value;
         const currentPage = document.querySelector('.nav-item.active').dataset.page;
         
-        // 只有在初次載入或切換頁面時才顯示載入動畫
-        const isSearching = searchText !== '' || document.activeElement === searchInput;
-        if (!isSearching) {
-            await showCustomAlert('', 'loading');
-        }
+        // 每次載入都顯示載入動畫
+        await showCustomAlert('', 'loading');
         
         console.log('搜尋條件:', { searchText, store, currentPage });
         
@@ -334,10 +331,8 @@ async function loadBarcodes() {
         
         console.log('過濾後資料數量:', filteredBarcodes.length);
         
-        // 只有在非搜尋時才確保載入動畫顯示足夠時間
-        if (!isSearching) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-        }
+        // 確保載入動畫顯示足夠時間
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         // 關閉載入動畫
         document.querySelector('.browser-dialog')?.remove();
