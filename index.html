@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>條碼掃描系統</title>
+    <title>條碼存儲系統</title>
     <link rel="stylesheet" href="css/style.css">
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -45,7 +45,7 @@
             <!-- 登入頁面 -->
             <div id="loginPage" class="page">
                 <div class="login-container">
-                    <h1>歡迎使用條碼掃描系統</h1>
+                    <h1>歡迎使用</h1>
                     <button id="googleLoginBtn" class="btn-google">
                         <img src="assets/google-icon.svg" alt="Google Logo">
                         使用 Google 帳號登入
@@ -66,23 +66,23 @@
                     <nav class="nav-menu">
                         <button class="nav-item active" data-page="official">
                             <i class="fas fa-database"></i>
-                            官方資料
+                            官方資料（會自動同步）
                         </button>
                         <button class="nav-item" data-page="personal">
                             <i class="fas fa-user"></i>
-                            個人紀錄
+                            個人資料（用戶新增）
                         </button>
                         <button class="nav-item" data-page="scan">
                             <i class="fas fa-barcode"></i>
-                            開始掃描
+                            掃描（尚未開發完畢）
                         </button>
                         <button class="nav-item" data-page="manual">
                             <i class="fas fa-edit"></i>
-                            手動輸入
+                            手輸條碼
                         </button>
                         <button id="uploadButton" class="nav-item" data-page="upload">
                             <i class="fas fa-upload"></i>
-                            批量上傳
+                            送信
                         </button>
                         <button id="showAnnouncementBtn" class="nav-item">
                             <i class="fas fa-bullhorn"></i>
@@ -219,8 +219,8 @@
             <!-- 上傳確認對話框 -->
             <div id="uploadModal" class="modal">
                 <div class="modal-content">
-                    <h2>確認上傳</h2>
-                    <p>是否要將本地暫存的條碼資料上傳至資料庫？</p>
+                    <h2>確認送信</h2>
+                    <p>是否要送信？</p>
                     <div class="upload-preview">
                         <div class="local-data-summary">
                             共有 <span id="uploadCount">0</span> 筆資料待上傳
@@ -228,7 +228,57 @@
                     </div>
                     <div id="loadingText" class="loading-text">資料處理中</div>
                     <div class="form-actions">
-                        <button class="btn-upload">確認上傳</button>
+                        <button class="btn-upload">送信</button>
+                        <button class="btn-cancel">終了</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 編輯對話框 -->
+            <div id="editModal" class="modal">
+                <div class="modal-content">
+                    <h2>編輯條碼</h2>
+                    <form id="editForm" class="barcode-form">
+                        <div class="form-group">
+                            <label for="editCode">條碼</label>
+                            <input type="text" id="editCode" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editName">商品名稱</label>
+                            <input type="text" id="editName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editPrice">價格</label>
+                            <input type="number" id="editPrice" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editStore">商店</label>
+                            <select id="editStore" required>
+                                <option value="711">7-11</option>
+                                <option value="family">全家</option>
+                                <option value="hilife">萊爾富</option>
+                                <option value="ok">OK超商</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editDescription">描述</label>
+                            <textarea id="editDescription"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">儲存</button>
+                            <button type="button" class="btn-cancel">取消</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 刪除確認對話框 -->
+            <div id="deleteModal" class="modal">
+                <div class="modal-content">
+                    <h2>確認刪除</h2>
+                    <p>您確定要刪除此條碼嗎？</p>
+                    <div class="form-actions">
+                        <button class="btn-delete">刪除</button>
                         <button class="btn-cancel">取消</button>
                     </div>
                 </div>
@@ -248,16 +298,9 @@
             <h3 class="product-name"></h3>
             <div class="store-badge"></div>
             <div class="barcode-info">
-                <div class="barcode-info-row">
-                    <span class="barcode-info-label">條碼：</span>
-                    <span class="barcode-info-value barcode-number"></span>
-                </div>
-                <div class="barcode-info-row">
-                    <span class="barcode-info-label">價格：</span>
-                    <span class="barcode-info-value price"></span>
-                </div>
+                <p class="barcode-number"></p>
+                <p class="description-text"></p>
             </div>
-            <div class="description-text"></div>
         </div>
     </template>
 </body>
