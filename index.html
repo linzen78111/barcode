@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>條碼存儲系統</title>
+    <title>條碼系統</title>
     <link rel="stylesheet" href="css/style.css">
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -66,7 +66,7 @@
                     <nav class="nav-menu">
                         <button class="nav-item active" data-page="official">
                             <i class="fas fa-database"></i>
-                            官方資料（會自動同步）
+                            官方資料（自動同步）
                         </button>
                         <button class="nav-item" data-page="personal">
                             <i class="fas fa-user"></i>
@@ -74,7 +74,7 @@
                         </button>
                         <button class="nav-item" data-page="scan">
                             <i class="fas fa-barcode"></i>
-                            掃描（尚未開發完畢）
+                            Scan(未開發完成)
                         </button>
                         <button class="nav-item" data-page="manual">
                             <i class="fas fa-edit"></i>
@@ -86,7 +86,7 @@
                         </button>
                         <button id="showAnnouncementBtn" class="nav-item">
                             <i class="fas fa-bullhorn"></i>
-                            開發者公告
+                            公告
                         </button>
                     </nav>
                     <button id="logoutBtn" class="btn-logout">
@@ -219,67 +219,17 @@
             <!-- 上傳確認對話框 -->
             <div id="uploadModal" class="modal">
                 <div class="modal-content">
-                    <h2>確認送信</h2>
-                    <p>是否要送信？</p>
+                    <h2>送信</h2>
+                    <p>是否送信至資料庫？</p>
                     <div class="upload-preview">
                         <div class="local-data-summary">
-                            共有 <span id="uploadCount">0</span> 筆資料待上傳
+                            共有 <span id="uploadCount">0</span> 筆資料待送信
                         </div>
                     </div>
                     <div id="loadingText" class="loading-text">資料處理中</div>
                     <div class="form-actions">
                         <button class="btn-upload">送信</button>
                         <button class="btn-cancel">終了</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 編輯對話框 -->
-            <div id="editModal" class="modal">
-                <div class="modal-content">
-                    <h2>編輯條碼</h2>
-                    <form id="editForm" class="barcode-form">
-                        <div class="form-group">
-                            <label for="editCode">條碼</label>
-                            <input type="text" id="editCode" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="editName">商品名稱</label>
-                            <input type="text" id="editName" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="editPrice">價格</label>
-                            <input type="number" id="editPrice" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="editStore">商店</label>
-                            <select id="editStore" required>
-                                <option value="711">7-11</option>
-                                <option value="family">全家</option>
-                                <option value="hilife">萊爾富</option>
-                                <option value="ok">OK超商</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="editDescription">描述</label>
-                            <textarea id="editDescription"></textarea>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn-primary">儲存</button>
-                            <button type="button" class="btn-cancel">取消</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- 刪除確認對話框 -->
-            <div id="deleteModal" class="modal">
-                <div class="modal-content">
-                    <h2>確認刪除</h2>
-                    <p>您確定要刪除此條碼嗎？</p>
-                    <div class="form-actions">
-                        <button class="btn-delete">刪除</button>
-                        <button class="btn-cancel">取消</button>
                     </div>
                 </div>
             </div>
@@ -298,9 +248,16 @@
             <h3 class="product-name"></h3>
             <div class="store-badge"></div>
             <div class="barcode-info">
-                <p class="barcode-number"></p>
-                <p class="description-text"></p>
+                <div class="barcode-info-row">
+                    <span class="barcode-info-label">條碼：</span>
+                    <span class="barcode-info-value barcode-number"></span>
+                </div>
+                <div class="barcode-info-row">
+                    <span class="barcode-info-label">價格：</span>
+                    <span class="barcode-info-value price"></span>
+                </div>
             </div>
+            <div class="description-text"></div>
         </div>
     </template>
 </body>

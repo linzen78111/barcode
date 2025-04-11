@@ -234,7 +234,7 @@ const barcodeService = {
             
             await batch.commit();
         } catch (error) {
-            console.error('批量上傳失敗:', error);
+            console.error('批量送信失敗:', error);
             throw error;
         }
     },
@@ -418,8 +418,6 @@ function showBarcodeDetails(barcode) {
                 </div>
             </div>
             <div class="form-actions">
-                <button class="btn-edit">編輯</button>
-                <button class="btn-delete">刪除</button>
                 <button class="btn-cancel">關閉</button>
             </div>
         </div>
@@ -465,7 +463,7 @@ function showBarcodeDetails(barcode) {
         } catch (error) {
             console.error('生成條碼失敗:', error);
             const barcodeContainer = detailsModal.querySelector('.barcode-image-container');
-            barcodeContainer.innerHTML = '<p class="error">無法生成條碼圖片</p>';
+            barcodeContainer.innerHTML = '<p class="error">Error可能條碼輸入錯誤</p>';
         }
     }
     
@@ -476,13 +474,8 @@ function showBarcodeDetails(barcode) {
         detailsModal.style.visibility = 'visible';
     }, 10);
     
-    // 綁定按鈕事件
-    const editBtn = detailsModal.querySelector('.btn-edit');
-    const deleteBtn = detailsModal.querySelector('.btn-delete');
+    // 關閉按鈕事件
     const closeBtn = detailsModal.querySelector('.btn-cancel');
-
-    editBtn.addEventListener('click', () => editBarcode(barcode.id));
-    deleteBtn.addEventListener('click', () => deleteBarcode(barcode.id));
     closeBtn.addEventListener('click', () => {
         detailsModal.style.opacity = '0';
         detailsModal.style.visibility = 'hidden';
@@ -719,7 +712,7 @@ barcodeForm.addEventListener('submit', async (e) => {
         // 重新開始掃描
         html5QrcodeScanner.resume();
         
-        await showCustomAlert('已加入，結束後請記得送信！');
+        await showCustomAlert('已加入，結束後記得送信！');
     } catch (error) {
         console.error('儲存條碼資料失敗:', error);
         await showCustomAlert('儲存失敗：' + error.message, 'error');
@@ -801,7 +794,7 @@ navItems.forEach(item => {
                 console.log('顯示上傳確認對話框');
                 if (localBarcodes.length === 0) {
                     errorSound.play();
-                    await showCustomAlert('無送信資料！', 'error');
+                    await showCustomAlert('無送信資料', 'error');
                     document.querySelector('[data-page="manual"]').click();
                     return;
                 }
@@ -871,7 +864,7 @@ document.querySelector('.btn-upload').addEventListener('click', async () => {
         // 關閉等待彈窗並顯示成功訊息
         document.querySelector('.browser-dialog')?.remove();
         document.querySelector('.browser-dialog-overlay')?.remove();
-        await showCustomAlert('上傳成功！');
+        await showCustomAlert('送信成功！');
         
         localBarcodes = []; // 清空本地暫存
         saveLocalBarcodes(); // 儲存清空後的暫存資料
@@ -881,11 +874,11 @@ document.querySelector('.btn-upload').addEventListener('click', async () => {
         // 返回主頁面
         document.querySelector('[data-page="official"]').click();
     } catch (error) {
-        console.error('上傳失敗:', error);
+        console.error('送信失敗:', error);
         // 關閉等待彈窗並顯示錯誤訊息
         document.querySelector('.browser-dialog')?.remove();
         document.querySelector('.browser-dialog-overlay')?.remove();
-        await showCustomAlert('上傳失敗：' + error.message, 'error');
+        await showCustomAlert('送信失敗：' + error.message, 'error');
     }
 });
 
@@ -1000,7 +993,7 @@ manualForm.addEventListener('submit', async (e) => {
     updateLocalDataList();
     
     // 顯示成功訊息
-    await showCustomAlert('已加入，結束後請記得送信！');
+    await showCustomAlert('已加入，結束後記得送信！');
     
     // 重置表單並關閉對話框
     manualForm.reset();
@@ -1044,9 +1037,9 @@ if (addManualBtn) {
 
 // 上傳全部按鈕
 uploadLocalDataBtn.addEventListener('click', async () => {
-    console.log('點擊上傳全部按鈕');
+    console.log('點擊送信全部按鈕');
     if (localBarcodes.length === 0) {
-        await showCustomAlert('無送信的資料！', 'error');
+        await showCustomAlert('無送信資料！', 'error');
         return;
     }
     // 更新上傳預覽
@@ -1092,9 +1085,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 在頁面載入時載入暫存資料
     loadLocalBarcodes();
-
-    // 隱藏所有對話框
-    hideModals();
 });
 
 // 在頁面載入時檢查登入狀態
@@ -1632,38 +1622,24 @@ function renderBarcodeItem(data) {
     const clone = template.content.cloneNode(true);
     
     // 設置商品名稱
-    const productNameEl = clone.querySelector('.product-name');
-    if (productNameEl) {
-        productNameEl.textContent = data.name || '未命名商品';
-    }
+    clone.querySelector('.product-name').textContent = data.name || '未命名商品';
     
     // 設置商店標籤
-    const storeBadgeEl = clone.querySelector('.store-badge');
-    if (storeBadgeEl) {
-        storeBadgeEl.textContent = data.store || '未知商店';
-    }
+    clone.querySelector('.store-badge').textContent = data.store || '未知商店';
     
     // 設置條碼號碼
-    const barcodeNumberEl = clone.querySelector('.barcode-number');
-    if (barcodeNumberEl) {
-        barcodeNumberEl.textContent = data.code || '無條碼';
-    }
+    clone.querySelector('.barcode-number').textContent = data.code || '無條碼';
     
     // 設置價格
-    const priceEl = clone.querySelector('.price');
-    if (priceEl) {
-        priceEl.textContent = data.price ? `$${data.price}` : '$0';
-    }
+    clone.querySelector('.price').textContent = data.price ? `$${data.price}` : '$0';
     
     // 設置描述文字（如果有的話）
     const descriptionEl = clone.querySelector('.description-text');
-    if (descriptionEl) {
-        if (data.description && data.description.trim()) {
-            descriptionEl.textContent = data.description;
-            descriptionEl.style.display = 'block';
-        } else {
-            descriptionEl.style.display = 'none';
-        }
+    if (data.description && data.description.trim()) {
+        descriptionEl.textContent = data.description;
+        descriptionEl.style.display = 'block';
+    } else {
+        descriptionEl.style.display = 'none';
     }
     
     return clone;
@@ -1742,59 +1718,5 @@ async function startUpload() {
     }
 }
 
-// 編輯條碼
-function editBarcode(barcodeId) {
-    const editModal = document.getElementById('editModal');
-    const editForm = document.getElementById('editForm');
-    const barcode = barcodes.find(b => b.id === barcodeId);
-
-    if (barcode) {
-        document.getElementById('editCode').value = barcode.code;
-        document.getElementById('editName').value = barcode.name;
-        document.getElementById('editPrice').value = barcode.price;
-        document.getElementById('editStore').value = barcode.store;
-        document.getElementById('editDescription').value = barcode.description;
-        editModal.style.display = 'block';
-    }
-}
-
-// 刪除條碼
-function deleteBarcode(barcodeId) {
-    const deleteModal = document.getElementById('deleteModal');
-    const deleteBtn = deleteModal.querySelector('.btn-delete');
-    const cancelBtn = deleteModal.querySelector('.btn-cancel');
-
-    deleteBtn.onclick = () => {
-        const index = barcodes.findIndex(b => b.id === barcodeId);
-        if (index !== -1) {
-            barcodes.splice(index, 1);
-            renderBarcodeList();
-            deleteModal.style.display = 'none';
-        }
-    };
-
-    cancelBtn.onclick = () => {
-        deleteModal.style.display = 'none';
-    };
-
-    deleteModal.style.display = 'block';
-}
-
-// 綁定編輯和刪除按鈕事件
-document.addEventListener('click', (e) => {
-    if (e.target.matches('.btn-edit')) {
-        const barcodeId = e.target.closest('.barcode-item').dataset.id;
-        editBarcode(barcodeId);
-    } else if (e.target.matches('.btn-delete')) {
-        const barcodeId = e.target.closest('.barcode-item').dataset.id;
-        deleteBarcode(barcodeId);
-    }
-});
-
-// 隱藏所有對話框
-function hideModals() {
-    const modals = document.querySelectorAll('.modal');
-    modals.forEach(modal => {
-        modal.style.display = 'none';
-    });
-} 
+// 綁定上傳按鈕事件
+document.querySelector('#uploadModal .btn-upload').addEventListener('click', startUpload); 
