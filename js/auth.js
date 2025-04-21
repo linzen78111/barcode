@@ -6,57 +6,52 @@ const logoutBtn = document.getElementById('logoutBtn');
 const userAvatar = document.getElementById('userAvatar');
 const userName = document.getElementById('userName');
 
-// Google 登入
-googleLoginBtn.addEventListener('click', async () => {
-    try {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        provider.setCustomParameters({
-            prompt: 'select_account'
-        });
-        const result = await firebase.auth().signInWithPopup(provider);
-        console.log('登入成功:', result.user);
-    } catch (error) {
-        console.error('登入失敗:', error);
-        alert(`登入失敗: ${error.message}`);
-    }
+// Firebase 配置
+const firebaseConfig = {
+    // 您的 Firebase 配置
+};
+
+// 初始化 Firebase
+firebase.initializeApp(firebaseConfig);
+
+// 登入處理
+googleLoginBtn.addEventListener('click', () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    // 使用重定向登入
+    firebase.auth().signInWithRedirect(provider);
 });
 
-// 登出
-logoutBtn.addEventListener('click', async () => {
-    try {
-        await firebase.auth().signOut();
-        console.log('登出成功');
-    } catch (error) {
-        console.error('登出失敗:', error);
-        alert(`登出失敗: ${error.message}`);
+// 檢查登入狀態
+firebase.auth().getRedirectResult().then((result) => {
+    if (result.credential) {
+        // 登入成功
+        const user = result.user;
+        updateUI(user);
     }
+}).catch((error) => {
+    console.error('登入錯誤:', error);
 });
 
-// 監聽登入狀態
-firebase.auth().onAuthStateChanged(async (user) => {
-    console.log('登入狀態改變:', user);
+// 監聽登入狀態變化
+firebase.auth().onAuthStateChanged((user) => {
     if (user) {
-        // 使用者已登入
-        loginPage.classList.add('hidden');
-        mainPage.classList.remove('hidden');
-        
-        // 更新使用者資訊
-        userAvatar.src = user.photoURL || 'assets/default-avatar.png';
-        userName.textContent = user.displayName || '使用者';
-        
-        // 檢查是否為官方帳號
-        const isOfficial = await barcodeService.isOfficialAccount();
-        if (isOfficial) {
-            userName.innerHTML = `${user.displayName || '使用者'} <span class="official-badge">官方帳號</span>`;
-        }
-        
-        // 初始化資料（在 app.js 中定義）
-        if (typeof initializeData === 'function') {
-            initializeData();
-        }
+        updateUI(user);
     } else {
-        // 使用者未登入
-        loginPage.classList.remove('hidden');
-        mainPage.classList.add('hidden');
+        // 未登入狀態
+        document.getElementById('loginPage').classList.remove('hidden');
+        document.getElementById('mainPage').classList.add('hidden');
     }
+});
+
+// 更新 UI
+function updateUI(user) {
+    document.getElementById('userName').textContent = user.displayName;
+    document.getElementById('userAvatar').src = user.photoURL;
+    document.getElementById('loginPage').classList.add('hidden');
+    document.getElementById('mainPage').classList.remove('hidden');
+}
+
+// 登出處理
+logoutBtn.addEventListener('click', () => {
+    firebase.auth().signOut();
 }); 
