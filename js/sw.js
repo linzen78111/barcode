@@ -11,6 +11,15 @@ const urlsToCache = [
     '/assets/icon-512x512.png'
 ];
 
+// 不需要快取的 URL 模式
+const NO_CACHE_PATTERNS = [
+    /\/__\/auth\//,
+    /\/auth\//,
+    /googleapis\.com/,
+    /firebase\.com/,
+    /accounts\.google\.com/
+];
+
 // 安裝 Service Worker
 self.addEventListener('install', event => {
     event.waitUntil(
@@ -38,6 +47,17 @@ self.addEventListener('activate', event => {
 
 // 攔截請求
 self.addEventListener('fetch', event => {
+    // 檢查是否需要跳過快取
+    const shouldSkipCache = NO_CACHE_PATTERNS.some(pattern => 
+        pattern.test(event.request.url)
+    );
+
+    if (shouldSkipCache) {
+        // 對於登入相關的請求，直接使用網路請求
+        event.respondWith(fetch(event.request));
+        return;
+    }
+
     event.respondWith(
         caches.match(event.request)
             .then(response => {
