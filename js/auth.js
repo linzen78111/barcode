@@ -35,24 +35,29 @@ document.getElementById('googleLoginBtn').addEventListener('click', async () => 
             prompt: 'select_account'
         });
         
-        if (isSafari) {
-            // Safari 使用重定向登入
-            console.log('使用重定向登入（Safari）');
-            await firebase.auth().signInWithRedirect(provider);
-        } else {
-            // 其他瀏覽器使用彈窗登入
-            console.log('使用彈窗登入');
-            const result = await firebase.auth().signInWithPopup(provider);
-            console.log('登入成功:', result.user);
-            updateUI(result.user);
-        }
+        // 使用彈窗登入
+        console.log('使用彈窗登入');
+        const result = await firebase.auth().signInWithPopup(provider);
+        console.log('登入成功:', result.user);
+        updateUI(result.user);
     } catch (error) {
         console.error('登入錯誤:', error);
         alert('登入失敗: ' + error.message);
+        
+        // 如果是彈窗被阻擋，嘗試使用重定向
+        if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+            try {
+                console.log('彈窗被阻擋，嘗試使用重定向');
+                await firebase.auth().signInWithRedirect(provider);
+            } catch (redirectError) {
+                console.error('重定向登入錯誤:', redirectError);
+                alert('登入失敗: ' + redirectError.message);
+            }
+        }
     }
 });
 
-// 檢查登入狀態（特別針對 Safari 重定向）
+// 檢查登入狀態
 firebase.auth().getRedirectResult().then((result) => {
     console.log('檢查重定向結果');
     if (result.credential) {
