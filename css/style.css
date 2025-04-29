@@ -511,6 +511,8 @@ input:focus, select:focus, textarea:focus {
     width: 90%;
     max-width: 400px;
     text-align: center;
+    max-height: 80vh;
+    overflow-y: auto;
 }
 
 .modal-content h2 {
