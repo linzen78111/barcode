@@ -1,3 +1,26 @@
+// 立即執行的函數來設定 onbeforeunload
+(function() {
+    console.log('設定 onbeforeunload 處理器');
+    window.onbeforeunload = function(e) {
+        console.log('onbeforeunload 被觸發');
+        // 直接從 localStorage 讀取
+        const savedBarcodes = localStorage.getItem('localBarcodes');
+        console.log('localStorage 中的資料:', savedBarcodes);
+        if (savedBarcodes) {
+            try {
+                const arr = JSON.parse(savedBarcodes);
+                console.log('解析後的資料:', arr);
+                if (arr && arr.length > 0) {
+                    console.log('有未送信資料，顯示警告');
+                    return '你有尚未送信的條碼資料，確定要離開嗎？';
+                }
+            } catch (error) {
+                console.error('解析資料時發生錯誤:', error);
+            }
+        }
+    };
+})();
+
 // 獲取 DOM 元素
 const menuToggleBtn = document.getElementById('menuToggle');
 const sidebar = document.querySelector('.sidebar');
@@ -1004,6 +1027,21 @@ document.querySelector('#manualPage .btn-cancel').addEventListener('click', () =
     document.querySelector('[data-page="official"]').click();
 });
 
+// 網速限制函數
+async function limitNetworkSpeed(promise, maxSpeed = 480) { // 5Mbps = 0.48秒/條碼
+    const startTime = Date.now();
+    const result = await promise;
+    const endTime = Date.now();
+    const elapsedTime = endTime - startTime;
+    
+    // 如果執行時間小於最大速度，等待剩餘時間
+    if (elapsedTime < maxSpeed) {
+        await new Promise(resolve => setTimeout(resolve, maxSpeed - elapsedTime));
+    }
+    
+    return result;
+}
+
 // 處理上傳確認
 document.querySelector('.btn-upload').addEventListener('click', async () => {
     console.log('確認上傳');
@@ -1019,17 +1057,28 @@ document.querySelector('.btn-upload').addEventListener('click', async () => {
         await showCustomAlert('資料處理中,請稍候...', 'loading');
         
         console.log('開始上傳本地暫存資料...');
-        for (const barcode of localBarcodes) {
-            console.log('上傳條碼:', barcode);
-            await barcodeService.saveBarcode({
-                ...barcode,
-                createdAt: firebase.firestore.Timestamp.now(),
-                updatedAt: firebase.firestore.Timestamp.now()
-            });
+        // 一個一個慢慢上傳
+        for (let i = 0; i < localBarcodes.length; i++) {
+            const barcode = localBarcodes[i];
+            console.log(`上傳第 ${i + 1}/${localBarcodes.length} 個條碼:`, barcode);
+            
+            // 使用網速限制上傳（5Mbps）
+            await limitNetworkSpeed(
+                barcodeService.saveBarcode({
+                    ...barcode,
+                    createdAt: firebase.firestore.Timestamp.now(),
+                    updatedAt: firebase.firestore.Timestamp.now()
+                }),
+                480 // 限制最高速度為 0.48 秒
+            );
+            
+            // 更新進度
+            const progress = Math.round((i + 1) / localBarcodes.length * 100);
+            console.log(`上傳進度: ${progress}%`);
         }
 
         // 添加延遲，讓等待彈窗顯示更久
-        await new Promise(resolve => setTimeout(resolve, 3800));
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         // 關閉等待彈窗並顯示成功訊息
         document.querySelector('.browser-dialog')?.remove();
@@ -1979,3 +2028,19 @@ function toDateSafe(val) {
     const d = new Date(val);
     return isNaN(d.getTime()) ? new Date() : d;
 }
+
+// 離開頁面前提醒（瀏覽器原生對話框，訊息無法自訂）
+window.onbeforeunload = function(e) {
+    // 直接從 localStorage 讀取
+    const savedBarcodes = localStorage.getItem('localBarcodes');
+    if (savedBarcodes) {
+        try {
+            const arr = JSON.parse(savedBarcodes);
+            if (arr && arr.length > 0) {
+                return '你有尚未送信的條碼資料，確定要離開嗎？';
+            }
+        } catch (error) {
+            // ignore
+        }
+    }
+};
