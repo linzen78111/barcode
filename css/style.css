@@ -1737,4 +1737,72 @@ input:focus, select:focus, textarea:focus {
     50% { content: '..'; }
     75% { content: '...'; }
     100% { content: ''; }
+}
+
+/* 詳情頁面樣式 */
+.detail-content {
+    padding: 20px;
+}
+
+.detail-image-section {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.detail-image {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.image-upload-section {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.image-name-input {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 200px;
+}
+
+.upload-image-btn {
+    padding: 8px 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.upload-image-btn:hover {
+    background-color: #45a049;
+}
+
+.detail-info {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.detail-item {
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+}
+
+.detail-item label {
+    font-weight: bold;
+    width: 100px;
+    color: #666;
+}
+
+.detail-item span {
+    flex: 1;
+    color: #333;
 } 

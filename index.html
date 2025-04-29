@@ -233,6 +233,45 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 詳情頁面 -->
+            <div id="detailPage" class="page hidden">
+                <div class="detail-header">
+                    <button class="back-button" onclick="showPage('mainPage')">返回</button>
+                    <h2>商品詳情</h2>
+                </div>
+                <div class="detail-content">
+                    <div class="detail-image-section">
+                        <img id="detailImage" src="" alt="商品圖片" class="detail-image">
+                        <div id="imageUploadSection" class="image-upload-section hidden">
+                            <input type="text" id="imageNameInput" placeholder="輸入圖片名稱" class="image-name-input">
+                            <button id="uploadImageBtn" class="upload-image-btn">上傳圖片</button>
+                        </div>
+                    </div>
+                    <div class="detail-info">
+                        <div class="detail-item">
+                            <label>條碼：</label>
+                            <span id="detailBarcode"></span>
+                        </div>
+                        <div class="detail-item">
+                            <label>商品名稱：</label>
+                            <span id="detailName"></span>
+                        </div>
+                        <div class="detail-item">
+                            <label>價格：</label>
+                            <span id="detailPrice"></span>
+                        </div>
+                        <div class="detail-item">
+                            <label>庫存：</label>
+                            <span id="detailStock"></span>
+                        </div>
+                        <div class="detail-item">
+                            <label>備註：</label>
+                            <span id="detailNote"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

@@ -33,37 +33,47 @@ const localDataCount = document.getElementById('localDataCount');
 class BarcodeData {
     constructor(data) {
         this.code = data.code || '';
-        this.createdAt = data.createdAt || Date.now();
+        this.createdAt = data.createdAt
+            ? (data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt))
+            : new Date();
         this.description = data.description || '';
         this.fromOfficial = data.fromOfficial || false;
         this.id = data.id || 0;
-        this.lastSyncTime = data.lastSyncTime || Date.now();
-        this.last_updated = data.last_updated ? new Date(data.last_updated) : new Date();
+        this.lastSyncTime = data.lastSyncTime
+            ? (data.lastSyncTime.toDate ? data.lastSyncTime.toDate() : new Date(data.lastSyncTime))
+            : new Date();
+        this.last_updated = data.last_updated
+            ? (data.last_updated.toDate ? data.last_updated.toDate() : new Date(data.last_updated))
+            : new Date();
         this.name = data.name || '';
         this.price = data.price || 0;
         this.store = data.store || '';
         this.syncStatus = data.syncStatus || 0;
         this.type = data.type || 'EAN-13';
-        this.updatedAt = data.updatedAt || Date.now();
+        this.updatedAt = data.updatedAt
+            ? (data.updatedAt.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt))
+            : new Date();
         this.user_id = data.user_id || '';
+        this.imageName = data.imageName || '';
     }
 
     toFirestore() {
         return {
             code: this.code,
-            createdAt: this.createdAt,
+            createdAt: firebase.firestore.Timestamp.fromDate(this.createdAt),
             description: this.description,
             fromOfficial: this.fromOfficial,
             id: this.id,
-            lastSyncTime: this.lastSyncTime,
+            lastSyncTime: firebase.firestore.Timestamp.fromDate(this.lastSyncTime),
             last_updated: firebase.firestore.Timestamp.fromDate(this.last_updated),
             name: this.name,
             price: this.price,
             store: this.store,
             syncStatus: this.syncStatus,
             type: this.type,
-            updatedAt: this.updatedAt,
-            user_id: this.user_id
+            updatedAt: firebase.firestore.Timestamp.fromDate(this.updatedAt),
+            user_id: this.user_id,
+            imageName: this.imageName
         };
     }
 
@@ -274,12 +284,108 @@ const barcodeService = {
 
     // 檢查是否為官方帳號
     async isOfficialAccount() {
-        const user = firebase.auth().currentUser;
-        if (!user) return false;
+        try {
+            const user = firebase.auth().currentUser;
+            if (!user) {
+                return false;
+            }
+            
+            // 檢查用戶郵箱
+            const officialEmail = 'apple0902303636@gmail.com';
+            const isOfficial = user.email === officialEmail;
+            
+            console.log('檢查官方帳號:', {
+                userEmail: user.email,
+                isOfficial: isOfficial
+            });
+            
+            return isOfficial;
+        } catch (error) {
+            console.error('檢查官方帳號失敗:', error);
+            return false;
+        }
+    },
+
+    // 顯示商品詳情
+    async showDetail(barcode) {
+        // 格式化條碼
+        const formattedBarcode = formatBarcode(barcode);
         
-        // 指定官方帳號的 email
-        const officialEmail = 'apple0902303636@gmail.com';
-        return user.email === officialEmail;
+        const barcodeData = await barcodeService.getBarcode(formattedBarcode, storeFilter.value);
+        if (barcodeData) {
+            document.getElementById('detailBarcode').textContent = formattedBarcode;
+            document.getElementById('detailName').textContent = barcodeData.name;
+            document.getElementById('detailPrice').textContent = barcodeData.price;
+            document.getElementById('detailStock').textContent = barcodeData.stock;
+            document.getElementById('detailNote').textContent = barcodeData.note || '無';
+
+            // 檢查是否為官方帳號
+            const isOfficial = await barcodeService.isOfficialAccount();
+            console.log('是否為官方帳號:', isOfficial);
+            
+            const imageUploadSection = document.getElementById('imageUploadSection');
+            if (isOfficial) {
+                imageUploadSection.classList.remove('hidden');
+                console.log('顯示圖片上傳區塊');
+            } else {
+                imageUploadSection.classList.add('hidden');
+                console.log('隱藏圖片上傳區塊');
+            }
+
+            // 載入商品圖片
+            const detailImage = document.getElementById('detailImage');
+            detailImage.style.display = 'none';  // 預設隱藏圖片
+
+            showPage('detailPage');
+        }
+    },
+
+    // 上傳商品圖片
+    async uploadProductImage(barcode, imageName) {
+        try {
+            const isOfficial = await barcodeService.isOfficialAccount();
+            if (!isOfficial) {
+                throw new Error('只有官方帳號可以上傳圖片');
+            }
+
+            const imageUrl = await barcodeService.uploadProductImage(barcode, imageName);
+            if (imageUrl) {
+                const detailImage = document.getElementById('detailImage');
+                detailImage.src = imageUrl;
+                detailImage.style.display = 'block';
+                alert('圖片上傳成功');
+            }
+        } catch (error) {
+            console.error('上傳圖片失敗:', error);
+            alert('上傳圖片失敗: ' + error.message);
+        }
+    },
+
+    // 初始化圖片上傳功能
+    initializeImageUpload() {
+        const uploadImageBtn = document.getElementById('uploadImageBtn');
+        const imageNameInput = document.getElementById('imageNameInput');
+        const detailImage = document.getElementById('detailImage');
+
+        if (uploadImageBtn && imageNameInput) {
+            uploadImageBtn.addEventListener('click', async () => {
+                const imageName = imageNameInput.value.trim();
+                if (!imageName) {
+                    alert('請輸入圖片名稱（如 IM123456）');
+                    return;
+                }
+                // 組合 GitHub 圖片網址
+                const imageUrl = `https://raw.githubusercontent.com/lucas0902303636/barcode/main/JPG/${imageName}.jpg`;
+                detailImage.src = imageUrl;
+                detailImage.onerror = function() {
+                    alert('找不到這張圖片，請檢查名稱或 GitHub 上是否有這張圖');
+                    this.style.display = 'none';
+                };
+                detailImage.onload = function() {
+                    this.style.display = 'block';
+                };
+            });
+        }
     }
 };
 
@@ -347,7 +453,15 @@ async function loadBarcodes() {
                 if (barcodeItem) {
                     const item = barcodeItem.querySelector('.barcode-item');
                     if (item) {
-                        item.addEventListener('click', () => showBarcodeDetails(barcode));
+                        item.addEventListener('click', async () => {
+                            // 即時取得最新資料
+                            const latestBarcode = await barcodeService.getBarcode(barcode.code, barcode.store);
+                            if (latestBarcode) {
+                                showBarcodeDetails(latestBarcode);
+                            } else {
+                                alert('找不到此條碼的詳細資料');
+                            }
+                        });
                     }
                     container.appendChild(barcodeItem);
                 }
@@ -401,14 +515,14 @@ function displayBarcodes(barcodes) {
 function showBarcodeDetails(barcode) {
     console.log('顯示條碼詳情:', barcode);
     const detailsModal = document.createElement('div');
+    // 先預設內容，稍後根據權限調整
     detailsModal.className = 'modal';
+    // 先插入基本結構，稍後再根據權限插入輸入框
     detailsModal.innerHTML = `
         <div class="modal-content">
             <h2>條碼詳情</h2>
             <div class="barcode-details">
-                <div class="barcode-image-container">
-                    <svg id="barcode-${barcode.code}"></svg>
-                </div>
+                <div class="barcode-image-container" id="barcode-image-container"></div>
                 <div class="barcode-info">
                     <p><strong>商品名稱：</strong>${barcode.name || '未命名商品'}</p>
                     <p><strong>條碼：</strong>${barcode.code || '無'}</p>
@@ -422,58 +536,114 @@ function showBarcodeDetails(barcode) {
             </div>
         </div>
     `;
-    
     document.body.appendChild(detailsModal);
-    
-    // 顯示條碼
-    if (barcode.code) {
-        try {
-            // 根據條碼長度決定格式
-            let format;
-            const code = barcode.code.replace(/\D/g, ''); // 移除非數字字符
-            
-            switch (code.length) {
-                case 8:
-                    format = "EAN8";
-                    break;
-                case 13:
-                    format = "EAN13";
-                    break;
-                case 14:
-                    format = "ITF14";
-                    break;
-                default:
-                    format = "CODE128";
-            }
-            
-            JsBarcode(`#barcode-${barcode.code}`, code, {
-                format: format,
-                width: 2,
-                height: 100,
-                displayValue: true,
-                fontSize: 16,
-                margin: 10,
-                background: "#ffffff",
-                lineColor: "#000000",
-                textAlign: "center",
-                textPosition: "bottom",
-                textMargin: 6,
-                font: "monospace"
-            });
-        } catch (error) {
-            console.error('生成條碼失敗:', error);
-            const barcodeContainer = detailsModal.querySelector('.barcode-image-container');
-            barcodeContainer.innerHTML = '<p class="error">Error可能條碼輸入錯誤</p>';
+
+    // 權限判斷，決定是否顯示輸入框
+    (async () => {
+        const isOfficial = await barcodeService.isOfficialAccount();
+        const imageName = barcode.imageName || `IM${barcode.code}`;
+        const barcodeImageContainer = detailsModal.querySelector('#barcode-image-container');
+        // 圖片區塊
+        let html = `<div style="display: flex; flex-direction: column; align-items: center; margin-right: 16px;">
+            <img id="barcode-detail-img" src="" alt="商品圖片" style="max-width: 180px; max-height: 180px; display: none; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 8px;">`;
+        if (isOfficial) {
+            html += `<div style="margin-bottom: 10px;">
+                <input id="barcode-img-input" type="text" placeholder="輸入圖片名稱(如IM123456)" style="width: 140px;">
+                <button id="barcode-img-btn">顯示圖片</button>
+                <button id="barcode-img-save" class="btn-primary" style="margin-left: 6px;">儲存</button>
+            </div>`;
         }
-    }
-    
+        html += `</div><svg id="barcode-${barcode.code}"></svg>`;
+        barcodeImageContainer.innerHTML = html;
+
+        // 條碼顯示
+        if (barcode.code) {
+            try {
+                let format;
+                const code = barcode.code.replace(/\D/g, '');
+                switch (code.length) {
+                    case 8: format = "EAN8"; break;
+                    case 13: format = "EAN13"; break;
+                    case 14: format = "ITF14"; break;
+                    default: format = "CODE128";
+                }
+                JsBarcode(`#barcode-${barcode.code}`, code, {
+                    format: format,
+                    width: 2,
+                    height: 100,
+                    displayValue: true,
+                    fontSize: 16,
+                    margin: 10,
+                    background: "#ffffff",
+                    lineColor: "#000000",
+                    textAlign: "center",
+                    textPosition: "bottom",
+                    textMargin: 6,
+                    font: "monospace"
+                });
+            } catch (error) {
+                console.error('生成條碼失敗:', error);
+                barcodeImageContainer.innerHTML = '<p class="error">Error可能條碼輸入錯誤</p>';
+            }
+        }
+        // 圖片顯示與（僅官方可）操作
+        const detailImg = barcodeImageContainer.querySelector('#barcode-detail-img');
+        detailImg.src = `https://raw.githubusercontent.com/linzen78111/barcode/main/JPG/${imageName}.jpg`;
+        detailImg.onload = function() { this.style.display = 'block'; };
+        detailImg.onerror = function() { this.style.display = 'none'; };
+        if (isOfficial) {
+            const imgInput = barcodeImageContainer.querySelector('#barcode-img-input');
+            const imgBtn = barcodeImageContainer.querySelector('#barcode-img-btn');
+            const imgSave = barcodeImageContainer.querySelector('#barcode-img-save');
+            imgInput.value = imageName;
+            imgBtn.addEventListener('click', async () => {
+                const imgName = imgInput.value.trim();
+                if (!imgName) {
+                    await showCustomAlert('請輸入圖片名稱', 'error');
+                    return;
+                }
+                const imageUrl = `https://raw.githubusercontent.com/linzen78111/barcode/main/JPG/${imgName}.jpg`;
+                detailImg.src = imageUrl;
+                detailImg.style.display = 'none';
+                detailImg.onload = function() { this.style.display = 'block'; };
+                detailImg.onerror = async function() {
+                    await showCustomAlert('找不到這張圖片，請檢查名稱或 GitHub 上是否有這張圖', 'error');
+                    this.style.display = 'none';
+                };
+            });
+            imgSave.addEventListener('click', async () => {
+                const imgName = imgInput.value.trim();
+                if (!imgName) {
+                    await showCustomAlert('請輸入圖片名稱', 'error');
+                    return;
+                }
+                try {
+                    // 修正時間欄位，確保都是有效時間
+                    const safeBarcode = {
+                        ...barcode,
+                        store: barcode.store || storeFilter.value,
+                        imageName: imgName,
+                        last_updated: toDateSafe(barcode.last_updated),
+                        createdAt: barcode.createdAt && barcode.createdAt.toDate ? barcode.createdAt : firebase.firestore.Timestamp.now(),
+                        updatedAt: firebase.firestore.Timestamp.now()
+                    };
+                    await barcodeService.saveBarcode(safeBarcode);
+                    await showCustomAlert('圖片名稱已儲存！', 'info');
+                    // 重新載入圖片
+                    const imageUrl = `https://raw.githubusercontent.com/linzen78111/barcode/main/JPG/${imgName}.jpg`;
+                    detailImg.src = imageUrl;
+                } catch (err) {
+                    await showCustomAlert('儲存失敗：' + err.message, 'error');
+                }
+            });
+        }
+    })();
     // 顯示對話框
     setTimeout(() => {
         detailsModal.style.display = 'flex';
         detailsModal.style.opacity = '1';
         detailsModal.style.visibility = 'visible';
     }, 10);
-    
     // 關閉按鈕事件
     const closeBtn = detailsModal.querySelector('.btn-cancel');
     closeBtn.addEventListener('click', () => {
@@ -597,7 +767,15 @@ searchInput.addEventListener('input', () => {
                 if (barcodeItem) {
                     const item = barcodeItem.querySelector('.barcode-item');
                     if (item) {
-                        item.addEventListener('click', () => showBarcodeDetails(barcode));
+                        item.addEventListener('click', async () => {
+                            // 即時取得最新資料
+                            const latestBarcode = await barcodeService.getBarcode(barcode.code, barcode.store);
+                            if (latestBarcode) {
+                                showBarcodeDetails(latestBarcode);
+                            } else {
+                                alert('找不到此條碼的詳細資料');
+                            }
+                        });
                     }
                     container.appendChild(barcodeItem);
                 }
@@ -658,25 +836,17 @@ function clearScanner() {
 
 // 掃描成功處理
 function onScanSuccess(decodedText, decodedResult) {
-    console.log('條碼掃描成功:', decodedText);
-    html5QrcodeScanner.pause();
+    // 檢查條碼格式
+    if (!validateBarcode(decodedText)) {
+        alert('無效的條碼格式');
+        return;
+    }
     
-    // 填入表單
-    codeInput.value = decodedText;
-    scanResult.classList.remove('hidden');
+    // 格式化條碼
+    const formattedBarcode = formatBarcode(decodedText);
     
-    // 查詢是否已有此條碼資料
-    barcodeService.getBarcode(decodedText, storeInput.value)
-        .then(existingBarcode => {
-            if (existingBarcode) {
-                nameInput.value = existingBarcode.name || '';
-                priceInput.value = existingBarcode.price || '';
-                descriptionInput.value = existingBarcode.description || '';
-            }
-        })
-        .catch(error => {
-            console.error('查詢條碼資料失敗:', error);
-        });
+    // 顯示詳情
+    showDetail(formattedBarcode);
 }
 
 // 掃描失敗處理
@@ -1085,6 +1255,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 在頁面載入時載入暫存資料
     loadLocalBarcodes();
+
+    // 初始化圖片上傳功能
+    initializeImageUpload();
 });
 
 // 在頁面載入時檢查登入狀態
@@ -1719,4 +1892,90 @@ async function startUpload() {
 }
 
 // 綁定上傳按鈕事件
-document.querySelector('#uploadModal .btn-upload').addEventListener('click', startUpload); 
+document.querySelector('#uploadModal .btn-upload').addEventListener('click', startUpload);
+
+// 檢查條碼格式
+function validateBarcode(barcode) {
+    // 移除所有非數字字符
+    const cleanBarcode = barcode.replace(/\D/g, '');
+    
+    // 檢查長度
+    if (cleanBarcode.length !== 12 && cleanBarcode.length !== 13) {
+        return false;
+    }
+    
+    // 檢查是否為 UPC-A 或 EAN-13
+    if (cleanBarcode.length === 12) {
+        // UPC-A 格式檢查
+        let sum = 0;
+        for (let i = 0; i < 11; i++) {
+            sum += (i % 2 === 0 ? 1 : 3) * parseInt(cleanBarcode[i]);
+        }
+        const checkDigit = (10 - (sum % 10)) % 10;
+        return checkDigit === parseInt(cleanBarcode[11]);
+    } else {
+        // EAN-13 格式檢查
+        let sum = 0;
+        for (let i = 0; i < 12; i++) {
+            sum += (i % 2 === 0 ? 1 : 3) * parseInt(cleanBarcode[i]);
+        }
+        const checkDigit = (10 - (sum % 10)) % 10;
+        return checkDigit === parseInt(cleanBarcode[12]);
+    }
+}
+
+// 格式化條碼
+function formatBarcode(barcode) {
+    // 移除所有非數字字符
+    const cleanBarcode = barcode.replace(/\D/g, '');
+    
+    // 根據長度格式化
+    if (cleanBarcode.length === 12) {
+        // UPC-A 格式：XXXXX-XXXXX-X
+        return `${cleanBarcode.slice(0, 5)}-${cleanBarcode.slice(5, 10)}-${cleanBarcode.slice(10)}`;
+    } else if (cleanBarcode.length === 13) {
+        // EAN-13 格式：XXX-XXXXX-XXXXX-X
+        return `${cleanBarcode.slice(0, 3)}-${cleanBarcode.slice(3, 8)}-${cleanBarcode.slice(8, 12)}-${cleanBarcode.slice(12)}`;
+    }
+    
+    return cleanBarcode;
+}
+
+// 手動輸入條碼
+function handleManualInput(barcode) {
+    // 檢查條碼格式
+    if (!validateBarcode(barcode)) {
+        alert('無效的條碼格式');
+        return;
+    }
+    
+    // 格式化條碼
+    const formattedBarcode = formatBarcode(barcode);
+    
+    // 顯示詳情
+    showDetail(formattedBarcode);
+}
+
+// 掃描條碼
+function onScanSuccess(decodedText, decodedResult) {
+    // 檢查條碼格式
+    if (!validateBarcode(decodedText)) {
+        alert('無效的條碼格式');
+        return;
+    }
+    
+    // 格式化條碼
+    const formattedBarcode = formatBarcode(decodedText);
+    
+    // 顯示詳情
+    showDetail(formattedBarcode);
+}
+
+// 防呆轉換 Firestore Timestamp 或其他型別為 Date
+function toDateSafe(val) {
+    if (!val) return new Date();
+    if (val instanceof Date) return val;
+    if (val.toDate) return val.toDate();
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? new Date() : d;
+}
