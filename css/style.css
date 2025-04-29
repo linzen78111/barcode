@@ -1805,4 +1805,10 @@ input:focus, select:focus, textarea:focus {
 .detail-item span {
     flex: 1;
     color: #333;
+}
+
+@media screen and (max-width: 768px) {
+    body {
+        zoom: 0.85;
+    }
 } 
