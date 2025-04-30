@@ -48,12 +48,9 @@ const errorSound = new Audio('ERROR.WAV');
 const manualModal = document.getElementById('manualModal');
 const manualForm = document.getElementById('manualForm');
 const addManualBtn = document.getElementById('addManualBtn');
-
-// 注意：下面這兩個元素我們將在函數中獲取，而不是全局定義時
-// const localDataList = document.getElementById('localDataList');
-// const localDataCount = document.getElementById('localDataCount');
-let localDataList = null;
-let localDataCount = null;
+const uploadLocalDataBtn = document.getElementById('uploadLocalDataBtn');
+const localDataList = document.getElementById('localDataList');
+const localDataCount = document.getElementById('localDataCount');
 
 // 條碼資料類別
 class BarcodeData {
@@ -1143,21 +1140,52 @@ function saveLocalBarcodes() {
 
 // 更新本地暫存列表
 function updateLocalDataList() {
-    console.log('更新本地暫存列表 - 已設為隱藏');
+    console.log('更新本地暫存列表');
+    const localDataList = document.getElementById('localDataList');
+    const localDataCount = document.getElementById('localDataCount');
     
-    // 不顯示本地暫存頁面和元素
-    let localDataPage = document.getElementById('localDataPage');
-    if (localDataPage) {
-        localDataPage.classList.add('hidden');
+    if (!localDataList || !localDataCount) {
+        console.error('找不到必要的 DOM 元素');
+        return;
     }
     
-    // 維持功能性但不顯示
-    localDataCount = document.getElementById('localDataCount');
-    if (localDataCount) {
-        localDataCount.textContent = localBarcodes.length;
-    }
+    // 更新數量
+    localDataCount.textContent = localBarcodes.length;
     
-    // 其他後台處理仍然保留，但不顯示在畫面上
+    // 清空列表
+    localDataList.innerHTML = '';
+    
+    // 添加條碼項目
+    localBarcodes.forEach((barcode, index) => {
+        const item = document.createElement('div');
+        item.className = 'local-data-item';
+        item.innerHTML = `
+            <div class="local-data-info">
+                <h3>${barcode.name || '未命名商品'}</h3>
+                <p>條碼: ${barcode.code || '無'}</p>
+                <p>價格: $${barcode.price || 0}</p>
+                <p>商店: ${barcode.store || '未知'}</p>
+                ${barcode.description ? `<p class="description-preview">描述: ${barcode.description}</p>` : ''}
+            </div>
+            <div class="local-data-actions">
+                <button class="btn-delete" data-index="${index}">
+                    <i class="fas fa-trash"></i> 刪除
+                </button>
+            </div>
+        `;
+        
+        // 為新添加的刪除按鈕綁定事件
+        const deleteBtn = item.querySelector('.btn-delete');
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            console.log('刪除條碼，索引:', index);
+            localBarcodes.splice(index, 1);
+            saveLocalBarcodes(); // 儲存更新後的暫存資料
+            updateLocalDataList();
+        });
+        
+        localDataList.appendChild(item);
+    });
 }
 
 // 處理手動輸入表單提交
@@ -1180,7 +1208,7 @@ manualForm.addEventListener('submit', async (e) => {
     localBarcodes.push(barcodeData);
     saveLocalBarcodes(); // 儲存更新後的暫存資料
     
-    // 更新本地暫存列表 (後台處理，不顯示)
+    // 更新本地暫存列表
     updateLocalDataList();
     
     // 顯示成功訊息
@@ -1190,18 +1218,9 @@ manualForm.addEventListener('submit', async (e) => {
     manualForm.reset();
     hideManualModal();
     
-    // 不再顯示本地暫存頁面
-    // document.getElementById('localDataPage').classList.remove('hidden');
+    // 確保本地暫存頁面顯示
+    document.getElementById('localDataPage').classList.remove('hidden');
 });
-
-// 隱藏手動輸入對話框
-function hideManualModal() {
-    const manualModal = document.getElementById('manualModal');
-    if (manualModal) {
-        manualModal.classList.add('hidden');
-        manualModal.style.display = 'none';
-    }
-}
 
 // 處理取消按鈕
 document.querySelectorAll('.btn-cancel').forEach(btn => {
@@ -1218,161 +1237,76 @@ document.querySelectorAll('.btn-cancel').forEach(btn => {
     });
 });
 
-// 初始化檔案上傳區域
-function initializeDropZone() {
-    console.log('初始化檔案上傳區域');
-    // 如果需要實現拖放功能，可以在這裡添加相關代碼
+// 點擊對話框背景關閉
+manualModal.addEventListener('click', (e) => {
+    if (e.target === manualModal) {
+        hideManualModal();
+    }
+});
+
+// 新增條碼按鈕點擊事件
+if (addManualBtn) {
+    addManualBtn.addEventListener('click', () => {
+        console.log('點擊新增條碼按鈕');
+        showManualModal();
+    });
+} else {
+    console.error('找不到新增條碼按鈕');
 }
 
-// 請求全螢幕模式 (停用)
+// 上傳全部按鈕
+uploadLocalDataBtn.addEventListener('click', async () => {
+    console.log('點擊送信全部按鈕');
+    if (localBarcodes.length === 0) {
+        await showCustomAlert('無送信資料！', 'error');
+        return;
+    }
+    // 更新上傳預覽
+    updateUploadPreview();
+    // 顯示上傳確認對話框
+    uploadModal.classList.remove('hidden');
+    uploadModal.style.display = 'flex';
+    uploadModal.style.opacity = '1';
+    uploadModal.style.visibility = 'visible';
+    document.getElementById('localDataPage').classList.remove('hidden');
+});
+
+// 請求全螢幕
 function requestFullscreen() {
-    console.log('全螢幕功能已停用');
-    // 不執行任何操作
+    if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.log('全螢幕請求被拒絕:', err);
+        });
+    }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-    console.log("DOM 已完全載入，開始初始化...");
+// 初始化
+document.addEventListener('DOMContentLoaded', () => {
+    initializeDropZone();
+    checkAndShowUploadButton();
     
-    // 載入本地暫存資料
-    console.log("載入本地暫存資料...");
+    // 確保側邊欄初始狀態為收合
+    sidebar.classList.add('collapsed');
+    mainContent.classList.add('expanded');
+
+    // 監聽所有可能的點擊事件，嘗試進入全螢幕
+    document.addEventListener('click', () => {
+        requestFullscreen();
+    });
+
+    // 監聽螢幕方向變化
+    window.addEventListener('orientationchange', () => {
+        setTimeout(requestFullscreen, 300);
+    });
+
+    // 初次載入時請求全螢幕
+    requestFullscreen();
+
+    // 在頁面載入時載入暫存資料
     loadLocalBarcodes();
-    
-    // 初始化各項功能
-    if (typeof initializeDropZone === 'function') {
-        initializeDropZone();
-    }
-    
-    if (typeof checkAndShowUploadButton === 'function') {
-        checkAndShowUploadButton();
-    }
-    
-    const sidebar = document.querySelector(".sidebar");
-    const mainContent = document.querySelector(".main-content");
-    
-    if (sidebar && mainContent) {
-        sidebar.classList.add("collapsed");
-        mainContent.classList.add("expanded");
-    }
-    
-    // 添加暫存管理按鈕
-    const uploadButton = document.getElementById("uploadButton");
-    console.log("嘗試找到上傳按鈕：", uploadButton);
-    
-    if (uploadButton && uploadButton.parentNode) {
-        console.log("找到上傳按鈕，準備創建管理暫存按鈕");
-        console.log("上傳按鈕的父元素：", uploadButton.parentNode);
-        
-        const manageButton = document.createElement("button");
-        manageButton.id = "manageLocalDataBtn";
-        manageButton.className = "nav-item";
-        manageButton.innerHTML = `<i class="fas fa-database"></i> 管理暫存`;
-        manageButton.style.backgroundColor = "#4a6bff";
-        manageButton.style.color = "white";
-        manageButton.style.padding = "8px 12px";
-        manageButton.style.margin = "5px";
-        manageButton.style.border = "none";
-        manageButton.style.borderRadius = "4px";
-        manageButton.style.cursor = "pointer";
-        manageButton.addEventListener("click", function(e) {
-            console.log("管理暫存按鈕被點擊了！");
-            console.log("點擊事件對象：", e);
-            e.stopPropagation(); // 防止事件冒泡
-            e.preventDefault(); // 防止默認行為
-            showLocalDataManager();
-        });
-        
-        // 插入到上傳按鈕前面
-        uploadButton.parentNode.insertBefore(manageButton, uploadButton);
-        console.log("管理暫存按鈕已創建並插入到 DOM，可見性：", manageButton.offsetParent !== null);
-        
-        // 確保點擊事件不被父元素攔截
-        manageButton.style.position = "relative";
-        manageButton.style.zIndex = "1001";
-        manageButton.style.backgroundColor = "#4CAF50";
-        manageButton.style.color = "white";
-        manageButton.style.fontWeight = "bold";
-        manageButton.style.border = "2px solid #4CAF50";
-        manageButton.style.borderRadius = "4px";
-        manageButton.style.padding = "10px 15px";
-        manageButton.style.margin = "5px";
-        manageButton.style.cursor = "pointer";
-        manageButton.style.display = "inline-block";
-        manageButton.style.fontSize = "16px";
-    } else {
-        console.error("無法找到上傳按鈕，無法創建管理暫存按鈕");
-    }
-    
-    // 點擊對話框背景關閉
-    document.addEventListener("click", (e) => {
-        if (e.target && e.target.classList && e.target.classList.contains("modal-overlay")) {
-            // 處理其他模態對話框的關閉，但跳過本地暫存頁面
-            const uploadModal = document.getElementById("uploadModal");
-            if (uploadModal) {
-                uploadModal.classList.add("hidden");
-            }
-            
-            // 關閉暫存管理器
-            const managerModal = document.getElementById("localDataManager");
-            if (managerModal) {
-                managerModal.style.display = "none";
-            }
-        }
-    });
-    
-    // 設置上傳按鈕點擊事件
-    const uploadBtn = document.getElementById("uploadButton");
-    if (uploadBtn) {
-        uploadBtn.addEventListener("click", async () => {
-            console.log("點擊送信按鈕");
-            if (localBarcodes.length === 0) {
-                await showCustomAlert("無送信資料！", "error");
-                return;
-            }
-            updateUploadPreview();
-            const uploadModal = document.getElementById("uploadModal");
-            if (uploadModal) {
-                uploadModal.classList.remove("hidden");
-                uploadModal.style.display = "flex";
-                uploadModal.style.opacity = "1";
-                uploadModal.style.visibility = "visible";
-            }
-            
-            // 不再顯示本地暫存頁面
-            // let localDataPage = document.getElementById("localDataPage");
-            // if (!localDataPage) {
-            //     // 如果頁面不存在，先更新本地列表會自動創建頁面
-            //     updateLocalDataList();
-            //     localDataPage = document.getElementById("localDataPage");
-            // }
-            
-            // if (localDataPage) {
-            //     localDataPage.classList.remove("hidden");
-            // }
-        });
-    } else {
-        console.error("找不到上傳按鈕");
-    }
-    
-    // 確認本地數據相關元素是否存在
-    const localDataList = document.getElementById('localDataList');
-    const localDataCount = document.getElementById('localDataCount');
-    console.log('本地數據相關元素檢查:', {
-        localDataList: !!localDataList,
-        localDataCount: !!localDataCount
-    });
-    
-    // 載入暫存資料
-    setTimeout(() => {
-        loadLocalBarcodes();
-    }, 100);
-    
+
     // 初始化圖片上傳功能
-    if (typeof initializeImageUpload === 'function') {
-        initializeImageUpload();
-    }
-    
-    // 移除全螢幕請求功能
-    // requestFullscreen();
+    initializeImageUpload();
 });
 
 // 在頁面載入時檢查登入狀態
@@ -1385,8 +1319,8 @@ window.addEventListener('load', async () => {
             await handleLoginSuccess(result.user);
         }
 
-        // 移除全螢幕請求
-        // requestFullscreen();
+        // 請求全螢幕
+        requestFullscreen();
     } catch (error) {
         console.error("處理登入狀態時發生錯誤:", error);
     }
@@ -2110,224 +2044,3 @@ window.onbeforeunload = function(e) {
         }
     }
 };
-
-// 顯示本地暫存管理器
-// function showLocalDataManager() {
-//     console.log("開始執行 showLocalDataManager 函數");
-//     
-//     // 直接創建一個全新的模態視窗，替換現有的
-//     let oldModal = document.getElementById("localDataManager");
-//     if (oldModal) {
-//         oldModal.remove();
-//     }
-//     
-//     console.log("創建新的管理器模態視窗");
-//     const managerModal = document.createElement("div");
-//     managerModal.id = "localDataManager";
-//     managerModal.className = "modal";
-//     
-//     // 設置內聯樣式確保顯示
-//     managerModal.style.cssText = `
-//         position: fixed;
-//         top: 0;
-//         left: 0;
-//         width: 100%;
-//         height: 100%;
-//         background-color: rgba(0, 0, 0, 0.5);
-//         z-index: 99999;
-//         display: flex;
-//         justify-content: center;
-//         align-items: center;
-//         overflow: auto;
-//         visibility: visible;
-//         opacity: 1;
-//     `;
-//     
-//     managerModal.innerHTML = `
-//         <div class="modal-content" style="
-//             background-color: #fff; 
-//             border-radius: 8px; 
-//             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); 
-//             max-width: 90%; 
-//             width: 500px; 
-//             padding: 20px; 
-//             max-height: 80vh; 
-//             overflow: hidden; 
-//             display: flex; 
-//             flex-direction: column; 
-//             margin: 50px auto; 
-//             position: relative;
-//         ">
-//     // 檢查是否已存在管理器
-//     let managerModal = document.getElementById("localDataManager");
-//     
-//     // 如果不存在，創建一個
-//     if (!managerModal) {
-//         console.log("創建管理器模態視窗");
-//         managerModal = document.createElement("div");
-//         managerModal.id = "localDataManager";
-//         managerModal.className = "modal";
-//         managerModal.style.position = "fixed";
-//         managerModal.style.top = "0";
-//         managerModal.style.left = "0";
-//         managerModal.style.width = "100%";
-//         managerModal.style.height = "100%";
-//         managerModal.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
-//         managerModal.style.zIndex = "99999"; // 非常高的 z-index 確保在最上層
-//         managerModal.style.display = "flex"; // 預設使用 flex
-//         managerModal.style.justifyContent = "center";
-//         managerModal.style.alignItems = "center";
-//         managerModal.style.overflow = "auto";
-//         
-//         managerModal.innerHTML = `
-//             <div class="modal-content" style="background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); max-width: 90%; width: 500px; padding: 20px; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column; margin: 50px auto; position: relative;">
-//             <div class="modal-content" style="background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); max-width: 90%; width: 500px; padding: 20px; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column; margin: 50px auto;">
-//                 <h2 style="margin-top: 0; margin-bottom: 16px; color: #333; font-size: 1.5rem;">管理暫存資料 (<span id="managerCount">0</span>)</h2>
-//                 <div id="managerList" style="overflow-y: auto; max-height: 50vh; margin-bottom: 16px;"></div>
-//                 <div class="form-actions" style="display: flex; gap: 10px; justify-content: flex-end;">
-//                     <button id="clearAllLocalData" class="btn-delete" style="background-color: #ff5252; color: white; border: none; border-radius: 4px; padding: 8px 16px; cursor: pointer; font-size: 0.9rem;">清空所有</button>
-//                     <button class="btn-cancel" style="background-color: #6c757d; color: white; border: none; border-radius: 4px; padding: 8px 16px; cursor: pointer; font-size: 0.9rem;">關閉</button>
-//                 </div>
-//             </div>
-//         `;
-//         
-//         document.body.appendChild(managerModal);
-//         console.log("管理器模態視窗已添加到文檔");
-//         
-//         // 關閉按鈕事件
-//         const closeBtn = managerModal.querySelector(".btn-cancel");
-//         if (closeBtn) {
-//             closeBtn.addEventListener("click", function() {
-//                 console.log("點擊了關閉按鈕");
-//                 managerModal.style.display = "none";
-//             });
-//             console.log("已綁定關閉按鈕事件");
-//         } else {
-//             console.error("無法找到關閉按鈕");
-//         }
-//         
-//         // 清空所有按鈕事件
-//         const clearBtn = managerModal.querySelector("#clearAllLocalData");
-//         if (clearBtn) {
-//             clearBtn.addEventListener("click", async function() {
-//                 console.log("點擊了清空所有按鈕");
-//                 if (confirm("確定要清空所有暫存資料嗎？")) {
-//                     localBarcodes = [];
-//                     saveLocalBarcodes();
-//                     updateManagerList();
-//                     await showCustomAlert("已清空所有暫存資料");
-//                 }
-//             });
-//             console.log("已綁定清空所有按鈕事件");
-//         } else {
-//             console.error("無法找到清空所有按鈕");
-//         }
-//     } else {
-//         console.log("管理器模態視窗已存在，無需重新創建");
-//     }
-//     
-//     // 更新列表並顯示
-//     updateManagerList();
-//     managerModal.style.display = "flex";
-//     console.log("顯示管理器模態視窗，當前顯示狀態:", managerModal.style.display);
-//     
-//     // 確保模態窗口可見
-//     setTimeout(() => {
-//         if (managerModal.style.display !== "flex") {
-//             console.log("嘗試再次顯示模態窗口");
-//             managerModal.style.display = "flex";
-//             managerModal.style.visibility = "visible";
-//             managerModal.style.opacity = "1";
-//         }
-//     }, 100);
-// }
-// 
-// // 更新管理器列表
-// function updateManagerList() {
-//     console.log("開始執行 updateManagerList 函數");
-//     console.log("當前暫存資料數量:", localBarcodes.length);
-//     
-//     const managerList = document.getElementById("managerList");
-//     const managerCount = document.getElementById("managerCount");
-//     
-//     if (!managerList || !managerCount) {
-//         console.error("找不到必要的管理器元素", {
-//             managerList: !!managerList,
-//             managerCount: !!managerCount
-//         });
-//         return;
-//     }
-//     
-//     console.log("更新管理器數量:", localBarcodes.length);
-//     
-//     // 更新數量
-//     managerCount.textContent = localBarcodes.length;
-//     
-//     // 清空列表
-//     managerList.innerHTML = "";
-//     
-//     // 添加項目
-//     localBarcodes.forEach((barcode, index) => {
-//         console.log("添加條碼項目:", index, barcode.name);
-//         
-//         const item = document.createElement("div");
-//         item.className = "local-data-item";
-//         item.style.border = "1px solid #e0e0e0";
-//         item.style.borderRadius = "6px";
-//         item.style.padding = "12px";
-//         item.style.marginBottom = "10px";
-//         item.style.display = "flex";
-//         item.style.justifyContent = "space-between";
-//         item.style.backgroundColor = "#f9f9f9";
-//         
-//         item.innerHTML = `
-//             <div class="local-data-info" style="flex: 1;">
-//                 <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 1.1rem; color: #333;">${barcode.name || '未命名商品'}</h3>
-//                 <p style="margin: 4px 0; color: #555; font-size: 0.9rem;">條碼: ${barcode.code || '無'}</p>
-//                 <p style="margin: 4px 0; color: #555; font-size: 0.9rem;">價格: $${barcode.price || 0}</p>
-//                 <p style="margin: 4px 0; color: #555; font-size: 0.9rem;">商店: ${barcode.store || '未知'}</p>
-//                 ${barcode.description ? `<p style="margin: 4px 0; color: #555; font-size: 0.9rem;">描述: ${barcode.description}</p>` : ''}
-//             </div>
-//             <div class="local-data-actions" style="display: flex; align-items: flex-start;">
-//                 <button class="btn-delete" data-index="${index}" style="background-color: #ff5252; color: white; border: none; border-radius: 4px; padding: 6px 12px; cursor: pointer; font-size: 0.9rem;">
-//                     刪除
-//                 </button>
-//             </div>
-//         `;
-//         
-//         // 刪除按鈕事件
-//         const deleteBtn = item.querySelector(".btn-delete");
-//         if (deleteBtn) {
-//             deleteBtn.addEventListener("click", function() {
-//                 console.log('點擊刪除按鈕，索引:', index);
-//                 localBarcodes.splice(index, 1);
-//                 saveLocalBarcodes();
-//                 updateManagerList();
-//             });
-//             console.log("已綁定刪除按鈕事件");
-//         } else {
-//             console.error("找不到刪除按鈕");
-//         }
-//         
-//         managerList.appendChild(item);
-//         console.log("條碼項目已添加到列表");
-//     });
-//     
-//     // 如果沒有資料，顯示提示
-//     if (localBarcodes.length === 0) {
-//         console.log("暫存中沒有條碼資料");
-//         
-//         const noData = document.createElement("div");
-//         noData.className = "no-data";
-//         noData.style.textAlign = "center";
-//         noData.style.padding = "20px";
-//         noData.style.color = "#888";
-//         noData.style.fontStyle = "italic";
-//         noData.textContent = "沒有暫存資料";
-//         
-//         managerList.appendChild(noData);
-//         console.log("已添加無資料提示");
-//     }
-//     
-//     console.log("更新管理器列表完成");
-// }
