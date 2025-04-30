@@ -45,9 +45,33 @@ async function uploadProductImage(barcode, imageName) {
     }
 }
 
-// 導出函數
-export {
-    // ... existing exports ...
+// 檢查是否為官方帳號
+async function isOfficialAccount() {
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            return false;
+        }
+        
+        // 檢查用戶郵箱
+        const officialEmail = 'apple0902303636@gmail.com';
+        const isOfficial = user.email === officialEmail;
+        
+        console.log('檢查官方帳號:', {
+            userEmail: user.email,
+            isOfficial: isOfficial
+        });
+        
+        return isOfficial;
+    } catch (error) {
+        console.error('檢查官方帳號失敗:', error);
+        return false;
+    }
+}
+
+// 導出函數 - 使用全局方式
+window.barcodeService = {
     getProductImage,
-    uploadProductImage
-}; 
+    uploadProductImage,
+    isOfficialAccount
+};

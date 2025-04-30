@@ -55,10 +55,16 @@ firebase.auth().onAuthStateChanged(async (user) => {
         if (userName) {
             userName.textContent = user.displayName || '使用者';
             
-            // 檢查是否為官方帳號
-            const isOfficial = await barcodeService.isOfficialAccount();
-            if (isOfficial) {
-                userName.innerHTML = `${user.displayName || '使用者'} <span class="official-badge">官方帳號</span>`;
+            // 檢查是否為官方帳號，先確認barcodeService是否存在
+            try {
+                if (typeof barcodeService !== 'undefined' && barcodeService) {
+                    const isOfficial = await barcodeService.isOfficialAccount();
+                    if (isOfficial) {
+                        userName.innerHTML = `${user.displayName || '使用者'} <span class="official-badge">官方帳號</span>`;
+                    }
+                }
+            } catch (error) {
+                console.error('檢查官方帳號失敗:', error);
             }
         }
         

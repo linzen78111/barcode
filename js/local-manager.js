@@ -13,6 +13,9 @@ function showLocalDataManager() {
     managerModal.id = "localDataManager";
     managerModal.className = "modal";
     
+    // 設置一個標記，用於跟踪是否執行了清空操作
+    window.didClearAllData = false;
+    
     // 設置內聯樣式確保顯示
     managerModal.style.cssText = `
         position: fixed;
@@ -94,11 +97,13 @@ function showLocalDataManager() {
     if (closeBtn) {
         closeBtn.addEventListener("click", function() {
             console.log("點擊了關閉按鈕");
-            // 恢復原始數據
-            if (window.originalBarcodes) {
+            // 只有在沒有清空所有數據時才恢復原始數據
+            if (!window.didClearAllData && window.originalBarcodes) {
                 localBarcodes = [...window.originalBarcodes];
-                window.originalBarcodes = null;
+                console.log("關閉時恢復原始數據");
             }
+            window.originalBarcodes = null;
+            window.didClearAllData = false;
             managerModal.remove();
         });
         console.log("已綁定關閉按鈕事件");
@@ -120,7 +125,10 @@ function showLocalDataManager() {
             });
             
             if (result) {
+                // 清空數據並標記已清空
                 localBarcodes = [];
+                window.originalBarcodes = [];
+                window.didClearAllData = true;
                 saveLocalBarcodes();
                 updateManagerList(1);
                 
@@ -172,11 +180,13 @@ function showLocalDataManager() {
     managerModal.addEventListener("click", function(e) {
         if (e.target === managerModal) {
             console.log("點擊背景關閉模態視窗");
-            // 恢復原始數據
-            if (window.originalBarcodes) {
+            // 只有在沒有清空所有數據時才恢復原始數據
+            if (!window.didClearAllData && window.originalBarcodes) {
                 localBarcodes = [...window.originalBarcodes];
-                window.originalBarcodes = null;
+                console.log("背景點擊關閉時恢復原始數據");
             }
+            window.originalBarcodes = null;
+            window.didClearAllData = false;
             managerModal.remove();
         }
     });

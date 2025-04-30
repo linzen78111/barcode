@@ -21,6 +21,18 @@
     };
 })();
 
+// 初始化資料函數 - 用於登入後初始化資料
+async function initializeData() {
+    try {
+        console.log('初始化資料');
+        await loadBarcodes();
+        updateLocalDataList();
+        console.log('資料初始化完成');
+    } catch (error) {
+        console.error('初始化資料失敗:', error);
+    }
+}
+
 // 獲取 DOM 元素
 const menuToggleBtn = document.getElementById('menuToggle');
 const sidebar = document.querySelector('.sidebar');
@@ -43,6 +55,11 @@ const btnUpload = document.querySelector('.btn-upload');
 const confirmSound = new Audio('SystemMessage_warning1.wav');
 const processingSound = new Audio('SystemMessage_warning2.wav');
 const errorSound = new Audio('ERROR.WAV');
+
+// 設為全局變數
+window.confirmSound = confirmSound;
+window.processingSound = processingSound;
+window.errorSound = errorSound;
 
 // 手動輸入相關元素
 const manualModal = document.getElementById('manualModal');
@@ -988,20 +1005,13 @@ navItems.forEach(item => {
                 
             case 'upload':
                 console.log('顯示上傳確認對話框');
-                if (localBarcodes.length === 0) {
-                    errorSound.play();
-                    await showCustomAlert('無送信資料', 'error');
-                    document.querySelector('[data-page="manual"]').click();
-                    return;
-                }
                 document.getElementById('mainPage').classList.remove('hidden');
                 // 播放確認音效
                 confirmSound.play();
-                uploadModal.classList.remove('hidden');
-                uploadModal.style.display = 'flex';
-                uploadModal.style.opacity = '1';
-                uploadModal.style.visibility = 'visible';
-                updateUploadPreview();
+                // 顯示上傳對話框，並處理沒有資料的情況
+                showUploadModal().catch(error => {
+                    console.error('顯示上傳對話框時發生錯誤:', error);
+                });
                 clearScanner();
                 break;
         }
@@ -1046,6 +1056,8 @@ async function limitNetworkSpeed(promise, maxSpeed = 480) { // 5Mbps = 0.48秒/�
 }
 
 // 處理上傳確認
+// 舊版上傳處理 - 注釋掉，用新版的 startUpload 函數代替
+/*
 document.querySelector('.btn-upload').addEventListener('click', async () => {
     console.log('確認上傳');
     const modal = document.getElementById('uploadModal');
@@ -1103,6 +1115,7 @@ document.querySelector('.btn-upload').addEventListener('click', async () => {
         await showCustomAlert('送信失敗：' + error.message, 'error');
     }
 });
+*/
 
 // 更新上傳預覽
 function updateUploadPreview() {
@@ -1115,8 +1128,15 @@ async function checkAndShowUploadButton() {
     uploadButton.classList.remove('hidden');
 }
 
+// 獲取本地暫存數量
+function getLocalBarcodeCount() {
+    return localBarcodes.length;
+}
+
 // 本地暫存的條碼資料
 let localBarcodes = [];
+// 確保本地暫存資料可從全局訪問
+window.localBarcodes = localBarcodes;
 
 // 從 localStorage 載入暫存資料
 function loadLocalBarcodes() {
@@ -1266,7 +1286,7 @@ document.addEventListener("DOMContentLoaded", () => {
         manageButton.id = "manageLocalDataBtn";
         manageButton.className = "nav-item";
         manageButton.innerHTML = `<i class="fas fa-database"></i> 管理暫存`;
-        manageButton.style.backgroundColor = "#4a6bff";
+        manageButton.style.backgroundColor = "#3498db";
         manageButton.style.color = "white";
         manageButton.style.padding = "8px 12px";
         manageButton.style.margin = "5px";
@@ -1288,10 +1308,10 @@ document.addEventListener("DOMContentLoaded", () => {
         // 確保點擊事件不被父元素攔截
         manageButton.style.position = "relative";
         manageButton.style.zIndex = "1001";
-        manageButton.style.backgroundColor = "#4CAF50";
+        manageButton.style.backgroundColor = "#3498db";
         manageButton.style.color = "white";
         manageButton.style.fontWeight = "bold";
-        manageButton.style.border = "2px solid #4CAF50";
+        manageButton.style.border = "2px solid #3498db";
         manageButton.style.borderRadius = "4px";
         manageButton.style.padding = "10px 15px";
         manageButton.style.margin = "5px";
@@ -1789,6 +1809,30 @@ async function googleLogin() {
     }
 }
 
+// 清理界面元素函數
+function cleanupUI() {
+    // 移除任何現有的對話框和彈出視窗
+    const dialogs = document.querySelectorAll('.browser-dialog, .browser-dialog-overlay, .modal.active');
+    dialogs.forEach(dialog => {
+        if (dialog) {
+            dialog.remove();
+        }
+    });
+    
+    // 確保上傳模態視窗被隱藏
+    const uploadModal = document.getElementById('uploadModal');
+    if (uploadModal) {
+        uploadModal.classList.add('hidden');
+        uploadModal.style.display = 'none';
+    }
+    
+    // 確保本地暫存管理器被隱藏
+    const managerModal = document.getElementById('localDataManager');
+    if (managerModal) {
+        managerModal.style.display = 'none';
+    }
+}
+
 // 自定義 alert 函數
 async function showCustomAlert(message, type = 'info') {
     return new Promise((resolve) => {
@@ -1952,7 +1996,67 @@ function updateBarcodeList(barcodes) {
 }
 
 // 顯示上傳確認對話框
-function showUploadModal() {
+async function showUploadModal() {
+    // 檢查是否有資料需要上傳
+    if (localBarcodes.length === 0) {
+        console.log("無送信資料");
+        
+        // 播放錯誤音效
+        if (typeof errorSound !== 'undefined') {
+            errorSound.play();
+        }
+        
+        // 顯示錯誤訊息
+        await showCustomAlert("無送信資料！", "error");
+        
+        // 確保所有頁面都隱藏，再顯示主頁面
+        document.querySelectorAll('.page').forEach(p => {
+            p.classList.add('hidden');
+            p.style.display = 'none';
+        });
+        
+        const mainPage = document.getElementById('mainPage');
+        if (mainPage) {
+            mainPage.classList.remove('hidden');
+            mainPage.style.display = 'block';
+        }
+        
+        // 確保主內容區域可見
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) {
+            mainContent.style.display = 'block';
+        }
+        
+        // 顯示頂部搜尋區域
+        const contentHeader = document.querySelector('.content-header');
+        if (contentHeader) {
+            contentHeader.style.display = 'flex';
+        }
+        
+        // 顯示條碼列表區域
+        const barcodeList = document.getElementById('barcodeList');
+        if (barcodeList) {
+            barcodeList.style.display = 'block';
+        }
+        
+        // 確保側邊欄導航項目正確激活
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(nav => nav.classList.remove('active'));
+        const officialNavItem = document.querySelector('[data-page="official"]');
+        if (officialNavItem) {
+            officialNavItem.classList.add('active');
+        }
+        
+        // 重新載入資料
+        try {
+            await loadBarcodes();
+        } catch (e) {
+            console.error("重新載入資料失敗:", e);
+        }
+        
+        return;
+    }
+    
     const modal = document.getElementById('uploadModal');
     const uploadCount = document.getElementById('uploadCount');
     const loadingText = document.getElementById('loadingText');
@@ -1965,11 +2069,13 @@ function showUploadModal() {
     formActions.style.display = 'flex';
     
     // 設置待上傳數量
-    const count = getLocalBarcodeCount();
-    uploadCount.textContent = count;
+    uploadCount.textContent = localBarcodes.length;
     
     // 顯示對話框
     modal.classList.add('active');
+    modal.style.display = 'flex';
+    modal.style.opacity = '1';
+    modal.style.visibility = 'visible';
 }
 
 // 開始上傳
@@ -1980,354 +2086,184 @@ async function startUpload() {
     const formActions = modal.querySelector('.form-actions');
     
     try {
+        // 檢查是否有資料需要送信
+        if (localBarcodes.length === 0) {
+            console.log("無送信資料");
+            
+            // 關閉送信模態窗口
+            modal.classList.remove('active');
+            modal.style.display = 'none';
+            
+            // 清理所有可能存在的彈出視窗和對話框
+            cleanupUI();
+            
+            // 確保所有頁面都隱藏，再顯示主頁面
+            document.querySelectorAll('.page').forEach(p => {
+                p.classList.add('hidden');
+                p.style.display = 'none';
+            });
+            
+            const mainPage = document.getElementById('mainPage');
+            if (mainPage) {
+                mainPage.classList.remove('hidden');
+                mainPage.style.display = 'block';
+            }
+            
+            // 確保主內容區域可見
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) {
+                mainContent.style.display = 'block';
+            }
+            
+            // 顯示頂部搜尋區域
+            const contentHeader = document.querySelector('.content-header');
+            if (contentHeader) {
+                contentHeader.style.display = 'flex';
+            }
+            
+            // 顯示條碼列表區域
+            const barcodeList = document.getElementById('barcodeList');
+            if (barcodeList) {
+                barcodeList.style.display = 'block';
+            }
+            
+            // 確保側邊欄導航項目正確激活
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(nav => nav.classList.remove('active'));
+            const officialNavItem = document.querySelector('[data-page="official"]');
+            if (officialNavItem) {
+                officialNavItem.classList.add('active');
+            }
+            
+            // 重新載入資料
+            try {
+                await loadBarcodes();
+            } catch (e) {
+                console.error("重新載入資料失敗:", e);
+            }
+            
+            // 顯示錯誤訊息
+            await showCustomAlert("無送信資料！", "error");
+            
+            return;
+        }
+        
         // 顯示加載狀態
         loadingText.classList.add('active');
         uploadPreview.classList.add('loading');
         formActions.style.display = 'none';
         
-        // 執行上傳操作
-        await uploadLocalBarcodes();
+        // 播放處理中音效
+        if (typeof processingSound !== 'undefined') {
+            processingSound.play();
+        }
+        
+        // 顯示等待彈窗
+        await showCustomAlert('資料處理中,請稍候...', 'loading');
+        
+        console.log('開始上傳本地暫存資料...');
+        // 一個一個慢慢上傳
+        for (let i = 0; i < localBarcodes.length; i++) {
+            const barcode = localBarcodes[i];
+            console.log(`上傳第 ${i + 1}/${localBarcodes.length} 個條碼:`, barcode);
+            
+            // 使用網速限制上傳（5Mbps）
+            await limitNetworkSpeed(
+                barcodeService.saveBarcode({
+                    ...barcode,
+                    createdAt: firebase.firestore.Timestamp.now(),
+                    updatedAt: firebase.firestore.Timestamp.now()
+                }),
+                480 // 限制最高速度為 0.48 秒
+            );
+            
+            // 更新進度
+            const progress = Math.round((i + 1) / localBarcodes.length * 100);
+            console.log(`上傳進度: ${progress}%`);
+        }
+        
+        // 添加延遲，讓等待彈窗顯示更久
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // 關閉等待彈窗
+        document.querySelector('.browser-dialog')?.remove();
+        document.querySelector('.browser-dialog-overlay')?.remove();
         
         // 上傳成功後關閉對話框
         modal.classList.remove('active');
+        modal.style.display = 'none';
+        
+        // 清空本地暫存
+        localBarcodes = [];
+        saveLocalBarcodes();
+        updateLocalDataList();
+        
+        // 清理所有可能存在的彈出視窗和對話框
+        cleanupUI();
+        
+        // 先確保主頁面是可見的
+        document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+        const mainPage = document.getElementById('mainPage');
+        if (mainPage) {
+            mainPage.classList.remove('hidden');
+            mainPage.style.display = 'block';
+        }
+        
+        // 重新載入主頁面資料
+        await loadBarcodes();
+        
+        // 直接操作 DOM 確保內容可見
+        const contentHeader = document.querySelector('.content-header');
+        if (contentHeader) contentHeader.style.display = 'flex';
+        
+        const barcodeList = document.getElementById('barcodeList');
+        if (barcodeList) barcodeList.style.display = 'block';
+        
+        // 確保側邊欄導航項目正確激活
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(nav => nav.classList.remove('active'));
+        const officialNavItem = document.querySelector('[data-page="official"]');
+        if (officialNavItem) officialNavItem.classList.add('active');
         
         // 顯示成功提示
-        showMessage('上傳成功！');
-        
+        await showCustomAlert('送信成功！');
     } catch (error) {
-        console.error('上傳失敗:', error);
-        showMessage('上傳失敗: ' + error.message, 'error');
+        console.error('上傳過程中發生錯誤:', error);
         
-    } finally {
-        // 重置狀態
+        // 關閉等待彈窗
+        document.querySelector('.browser-dialog')?.remove();
+        document.querySelector('.browser-dialog-overlay')?.remove();
+        
+        // 播放錯誤音效
+        if (typeof errorSound !== 'undefined') {
+            errorSound.play();
+        }
+        
+        // 恢復對話框狀態
         loadingText.classList.remove('active');
         uploadPreview.classList.remove('loading');
         formActions.style.display = 'flex';
+        
+        // 顯示錯誤訊息
+        await showCustomAlert(`上傳失敗: ${error.message}`, 'error');
     }
 }
 
-// 綁定上傳按鈕事件
-document.querySelector('#uploadModal .btn-upload').addEventListener('click', startUpload);
-
-// 檢查條碼格式
-function validateBarcode(barcode) {
-    // 移除所有非數字字符
-    const cleanBarcode = barcode.replace(/\D/g, '');
+// 設置上傳按鈕點擊事件
+document.querySelector('.btn-upload').addEventListener('click', async () => {
+    console.log('確認送信');
     
-    // 檢查長度
-    if (cleanBarcode.length !== 12 && cleanBarcode.length !== 13) {
-        return false;
+    try {
+        // 呼叫startUpload函數處理上傳
+        await startUpload();
+    } catch (error) {
+        console.error('送信處理失敗:', error);
+        await showCustomAlert('送信處理失敗: ' + error.message, 'error');
     }
-    
-    // 檢查是否為 UPC-A 或 EAN-13
-    if (cleanBarcode.length === 12) {
-        // UPC-A 格式檢查
-        let sum = 0;
-        for (let i = 0; i < 11; i++) {
-            sum += (i % 2 === 0 ? 1 : 3) * parseInt(cleanBarcode[i]);
-        }
-        const checkDigit = (10 - (sum % 10)) % 10;
-        return checkDigit === parseInt(cleanBarcode[11]);
-    } else {
-        // EAN-13 格式檢查
-        let sum = 0;
-        for (let i = 0; i < 12; i++) {
-            sum += (i % 2 === 0 ? 1 : 3) * parseInt(cleanBarcode[i]);
-        }
-        const checkDigit = (10 - (sum % 10)) % 10;
-        return checkDigit === parseInt(cleanBarcode[12]);
-    }
-}
+});
 
-// 格式化條碼
-function formatBarcode(barcode) {
-    // 移除所有非數字字符
-    const cleanBarcode = barcode.replace(/\D/g, '');
-    
-    // 根據長度格式化
-    if (cleanBarcode.length === 12) {
-        // UPC-A 格式：XXXXX-XXXXX-X
-        return `${cleanBarcode.slice(0, 5)}-${cleanBarcode.slice(5, 10)}-${cleanBarcode.slice(10)}`;
-    } else if (cleanBarcode.length === 13) {
-        // EAN-13 格式：XXX-XXXXX-XXXXX-X
-        return `${cleanBarcode.slice(0, 3)}-${cleanBarcode.slice(3, 8)}-${cleanBarcode.slice(8, 12)}-${cleanBarcode.slice(12)}`;
-    }
-    
-    return cleanBarcode;
-}
+// 設置函數為全局可用
+window.startUpload = startUpload;
 
-// 手動輸入條碼
-function handleManualInput(barcode) {
-    // 檢查條碼格式
-    if (!validateBarcode(barcode)) {
-        alert('無效的條碼格式');
-        return;
-    }
-    
-    // 格式化條碼
-    const formattedBarcode = formatBarcode(barcode);
-    
-    // 顯示詳情
-    showDetail(formattedBarcode);
-}
-
-// 掃描條碼
-function onScanSuccess(decodedText, decodedResult) {
-    // 檢查條碼格式
-    if (!validateBarcode(decodedText)) {
-        alert('無效的條碼格式');
-        return;
-    }
-    
-    // 格式化條碼
-    const formattedBarcode = formatBarcode(decodedText);
-    
-    // 顯示詳情
-    showDetail(formattedBarcode);
-}
-
-// 防呆轉換 Firestore Timestamp 或其他型別為 Date
-function toDateSafe(val) {
-    if (!val) return new Date();
-    if (val instanceof Date) return val;
-    if (val.toDate) return val.toDate();
-    const d = new Date(val);
-    return isNaN(d.getTime()) ? new Date() : d;
-}
-
-// 離開頁面前提醒（瀏覽器原生對話框，訊息無法自訂）
-window.onbeforeunload = function(e) {
-    // 直接從 localStorage 讀取
-    const savedBarcodes = localStorage.getItem('localBarcodes');
-    if (savedBarcodes) {
-        try {
-            const arr = JSON.parse(savedBarcodes);
-            if (arr && arr.length > 0) {
-                return '你有尚未送信的條碼資料，確定要離開嗎？';
-            }
-        } catch (error) {
-            // ignore
-        }
-    }
-};
-
-// 顯示本地暫存管理器
-// function showLocalDataManager() {
-//     console.log("開始執行 showLocalDataManager 函數");
-//     
-//     // 直接創建一個全新的模態視窗，替換現有的
-//     let oldModal = document.getElementById("localDataManager");
-//     if (oldModal) {
-//         oldModal.remove();
-//     }
-//     
-//     console.log("創建新的管理器模態視窗");
-//     const managerModal = document.createElement("div");
-//     managerModal.id = "localDataManager";
-//     managerModal.className = "modal";
-//     
-//     // 設置內聯樣式確保顯示
-//     managerModal.style.cssText = `
-//         position: fixed;
-//         top: 0;
-//         left: 0;
-//         width: 100%;
-//         height: 100%;
-//         background-color: rgba(0, 0, 0, 0.5);
-//         z-index: 99999;
-//         display: flex;
-//         justify-content: center;
-//         align-items: center;
-//         overflow: auto;
-//         visibility: visible;
-//         opacity: 1;
-//     `;
-//     
-//     managerModal.innerHTML = `
-//         <div class="modal-content" style="
-//             background-color: #fff; 
-//             border-radius: 8px; 
-//             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); 
-//             max-width: 90%; 
-//             width: 500px; 
-//             padding: 20px; 
-//             max-height: 80vh; 
-//             overflow: hidden; 
-//             display: flex; 
-//             flex-direction: column; 
-//             margin: 50px auto; 
-//             position: relative;
-//         ">
-//     // 檢查是否已存在管理器
-//     let managerModal = document.getElementById("localDataManager");
-//     
-//     // 如果不存在，創建一個
-//     if (!managerModal) {
-//         console.log("創建管理器模態視窗");
-//         managerModal = document.createElement("div");
-//         managerModal.id = "localDataManager";
-//         managerModal.className = "modal";
-//         managerModal.style.position = "fixed";
-//         managerModal.style.top = "0";
-//         managerModal.style.left = "0";
-//         managerModal.style.width = "100%";
-//         managerModal.style.height = "100%";
-//         managerModal.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
-//         managerModal.style.zIndex = "99999"; // 非常高的 z-index 確保在最上層
-//         managerModal.style.display = "flex"; // 預設使用 flex
-//         managerModal.style.justifyContent = "center";
-//         managerModal.style.alignItems = "center";
-//         managerModal.style.overflow = "auto";
-//         
-//         managerModal.innerHTML = `
-//             <div class="modal-content" style="background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); max-width: 90%; width: 500px; padding: 20px; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column; margin: 50px auto; position: relative;">
-//             <div class="modal-content" style="background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); max-width: 90%; width: 500px; padding: 20px; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column; margin: 50px auto;">
-//                 <h2 style="margin-top: 0; margin-bottom: 16px; color: #333; font-size: 1.5rem;">管理暫存資料 (<span id="managerCount">0</span>)</h2>
-//                 <div id="managerList" style="overflow-y: auto; max-height: 50vh; margin-bottom: 16px;"></div>
-//                 <div class="form-actions" style="display: flex; gap: 10px; justify-content: flex-end;">
-//                     <button id="clearAllLocalData" class="btn-delete" style="background-color: #ff5252; color: white; border: none; border-radius: 4px; padding: 8px 16px; cursor: pointer; font-size: 0.9rem;">清空所有</button>
-//                     <button class="btn-cancel" style="background-color: #6c757d; color: white; border: none; border-radius: 4px; padding: 8px 16px; cursor: pointer; font-size: 0.9rem;">關閉</button>
-//                 </div>
-//             </div>
-//         `;
-//         
-//         document.body.appendChild(managerModal);
-//         console.log("管理器模態視窗已添加到文檔");
-//         
-//         // 關閉按鈕事件
-//         const closeBtn = managerModal.querySelector(".btn-cancel");
-//         if (closeBtn) {
-//             closeBtn.addEventListener("click", function() {
-//                 console.log("點擊了關閉按鈕");
-//                 managerModal.style.display = "none";
-//             });
-//             console.log("已綁定關閉按鈕事件");
-//         } else {
-//             console.error("無法找到關閉按鈕");
-//         }
-//         
-//         // 清空所有按鈕事件
-//         const clearBtn = managerModal.querySelector("#clearAllLocalData");
-//         if (clearBtn) {
-//             clearBtn.addEventListener("click", async function() {
-//                 console.log("點擊了清空所有按鈕");
-//                 if (confirm("確定要清空所有暫存資料嗎？")) {
-//                     localBarcodes = [];
-//                     saveLocalBarcodes();
-//                     updateManagerList();
-//                     await showCustomAlert("已清空所有暫存資料");
-//                 }
-//             });
-//             console.log("已綁定清空所有按鈕事件");
-//         } else {
-//             console.error("無法找到清空所有按鈕");
-//         }
-//     } else {
-//         console.log("管理器模態視窗已存在，無需重新創建");
-//     }
-//     
-//     // 更新列表並顯示
-//     updateManagerList();
-//     managerModal.style.display = "flex";
-//     console.log("顯示管理器模態視窗，當前顯示狀態:", managerModal.style.display);
-//     
-//     // 確保模態窗口可見
-//     setTimeout(() => {
-//         if (managerModal.style.display !== "flex") {
-//             console.log("嘗試再次顯示模態窗口");
-//             managerModal.style.display = "flex";
-//             managerModal.style.visibility = "visible";
-//             managerModal.style.opacity = "1";
-//         }
-//     }, 100);
-// }
-// 
-// // 更新管理器列表
-// function updateManagerList() {
-//     console.log("開始執行 updateManagerList 函數");
-//     console.log("當前暫存資料數量:", localBarcodes.length);
-//     
-//     const managerList = document.getElementById("managerList");
-//     const managerCount = document.getElementById("managerCount");
-//     
-//     if (!managerList || !managerCount) {
-//         console.error("找不到必要的管理器元素", {
-//             managerList: !!managerList,
-//             managerCount: !!managerCount
-//         });
-//         return;
-//     }
-//     
-//     console.log("更新管理器數量:", localBarcodes.length);
-//     
-//     // 更新數量
-//     managerCount.textContent = localBarcodes.length;
-//     
-//     // 清空列表
-//     managerList.innerHTML = "";
-//     
-//     // 添加項目
-//     localBarcodes.forEach((barcode, index) => {
-//         console.log("添加條碼項目:", index, barcode.name);
-//         
-//         const item = document.createElement("div");
-//         item.className = "local-data-item";
-//         item.style.border = "1px solid #e0e0e0";
-//         item.style.borderRadius = "6px";
-//         item.style.padding = "12px";
-//         item.style.marginBottom = "10px";
-//         item.style.display = "flex";
-//         item.style.justifyContent = "space-between";
-//         item.style.backgroundColor = "#f9f9f9";
-//         
-//         item.innerHTML = `
-//             <div class="local-data-info" style="flex: 1;">
-//                 <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 1.1rem; color: #333;">${barcode.name || '未命名商品'}</h3>
-//                 <p style="margin: 4px 0; color: #555; font-size: 0.9rem;">條碼: ${barcode.code || '無'}</p>
-//                 <p style="margin: 4px 0; color: #555; font-size: 0.9rem;">價格: $${barcode.price || 0}</p>
-//                 <p style="margin: 4px 0; color: #555; font-size: 0.9rem;">商店: ${barcode.store || '未知'}</p>
-//                 ${barcode.description ? `<p style="margin: 4px 0; color: #555; font-size: 0.9rem;">描述: ${barcode.description}</p>` : ''}
-//             </div>
-//             <div class="local-data-actions" style="display: flex; align-items: flex-start;">
-//                 <button class="btn-delete" data-index="${index}" style="background-color: #ff5252; color: white; border: none; border-radius: 4px; padding: 6px 12px; cursor: pointer; font-size: 0.9rem;">
-//                     刪除
-//                 </button>
-//             </div>
-//         `;
-//         
-//         // 刪除按鈕事件
-//         const deleteBtn = item.querySelector(".btn-delete");
-//         if (deleteBtn) {
-//             deleteBtn.addEventListener("click", function() {
-//                 console.log('點擊刪除按鈕，索引:', index);
-//                 localBarcodes.splice(index, 1);
-//                 saveLocalBarcodes();
-//                 updateManagerList();
-//             });
-//             console.log("已綁定刪除按鈕事件");
-//         } else {
-//             console.error("找不到刪除按鈕");
-//         }
-//         
-//         managerList.appendChild(item);
-//         console.log("條碼項目已添加到列表");
-//     });
-//     
-//     // 如果沒有資料，顯示提示
-//     if (localBarcodes.length === 0) {
-//         console.log("暫存中沒有條碼資料");
-//         
-//         const noData = document.createElement("div");
-//         noData.className = "no-data";
-//         noData.style.textAlign = "center";
-//         noData.style.padding = "20px";
-//         noData.style.color = "#888";
-//         noData.style.fontStyle = "italic";
-//         noData.textContent = "沒有暫存資料";
-//         
-//         managerList.appendChild(noData);
-//         console.log("已添加無資料提示");
-//     }
-//     
-//     console.log("更新管理器列表完成");
-// }
+// 設置函數為全局可用
+window.showCustomAlert = showCustomAlert;
