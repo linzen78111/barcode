@@ -9,11 +9,25 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/offline.css">
     <!-- PWA設定 -->
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="/barcode/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="條碼系統">
     <link rel="apple-touch-icon" href="assets/chart.jpg">
+    <!-- Service Worker 註冊 -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/barcode/sw.js')
+                    .then(registration => {
+                        console.log('Service Worker 註冊成功:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker 註冊失敗:', error);
+                    });
+            });
+        }
+    </script>
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
     <!-- Firebase SDK -->
@@ -316,14 +330,5 @@
             <div class="description-text"></div>
         </div>
     </template>
-
-    <!-- 添加service worker註冊腳本 -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js');
-            });
-        }
-    </script>
 </body>
 </html> 

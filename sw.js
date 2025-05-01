@@ -1,30 +1,31 @@
 const CACHE_NAME = 'barcode-app-v1';
 const CACHE_FILES = [
-  '/',
-  '/index.html',
-  '/css/style.css',
-  '/js/app.js',
-  '/js/auth.js',
-  '/js/barcodeService.js',
-  '/js/config.js',
-  '/js/custom-confirm.js',
-  '/js/fix-upload.js',
-  '/js/local-manager.js',
-  '/js/pwa-handler.js',
-  '/manifest.json',
-  '/assets/google-icon.svg',
-  '/assets/icons/icon-72x72.png',
-  '/assets/icons/icon-96x96.png',
-  '/assets/icons/icon-128x128.png',
-  '/assets/icons/icon-144x144.png',
-  '/assets/icons/icon-152x152.png',
-  '/assets/icons/icon-192x192.png',
-  '/assets/icons/icon-384x384.png',
-  '/assets/icons/icon-512x512.png',
-  '/SystemMessage_warning1.wav',
-  '/SystemMessage_warning2.wav',
-  '/ERROR.WAV',
-  '/SystemProcessing.bmp'
+  '/barcode/',
+  '/barcode/index.html',
+  '/barcode/css/style.css',
+  '/barcode/js/app.js',
+  '/barcode/js/auth.js',
+  '/barcode/js/barcodeService.js',
+  '/barcode/js/config.js',
+  '/barcode/js/custom-confirm.js',
+  '/barcode/js/fix-upload.js',
+  '/barcode/js/local-manager.js',
+  '/barcode/js/pwa-handler.js',
+  '/barcode/manifest.json',
+  '/barcode/assets/google-icon.svg',
+  '/barcode/assets/icons/icon-72x72.png',
+  '/barcode/assets/icons/icon-96x96.png',
+  '/barcode/assets/icons/icon-128x128.png',
+  '/barcode/assets/icons/icon-144x144.png',
+  '/barcode/assets/icons/icon-152x152.png',
+  '/barcode/assets/icons/icon-192x192.png',
+  '/barcode/assets/icons/icon-384x384.png',
+  '/barcode/assets/icons/icon-512x512.png',
+  '/barcode/SystemMessage_warning1.wav',
+  '/barcode/SystemMessage_warning2.wav',
+  '/barcode/ERROR.WAV',
+  '/barcode/SystemProcessing.bmp',
+  '/barcode/offline.html'
 ];
 
 // 安裝 Service Worker 並緩存初始檔案
@@ -112,7 +113,7 @@ self.addEventListener('fetch', (event) => {
             
             // 如果是 HTML 請求，則返回 offline.html
             if (event.request.headers.get('accept').includes('text/html')) {
-              return caches.match('/offline.html');
+              return caches.match('/barcode/offline.html');
             }
             
             return new Response('離線狀態，無法獲取資源');
