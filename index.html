@@ -4,27 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>條碼系統</title>
-    <!-- PWA 初始化檢測，必須最先加載 -->
-    <script src="js/pwa-init.js"></script>
     <link rel="stylesheet" href="css/style.css">
-    <!-- PWA 相關 -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#4285F4">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="條碼系統">
-    <link rel="apple-touch-icon" href="assets/icon-192x192.png">
-    <!-- iOS 啟動畫面 -->
-    <link rel="apple-touch-startup-image" href="assets/icon-512x512.png">
-    <!-- 各種 iOS 啟動畫面尺寸 -->
-    <link rel="apple-touch-startup-image" href="assets/icon-512x512.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)">
-    <link rel="apple-touch-startup-image" href="assets/icon-512x512.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)">
-    <link rel="apple-touch-startup-image" href="assets/icon-512x512.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)">
-    <link rel="apple-touch-startup-image" href="assets/icon-512x512.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)">
-    <link rel="apple-touch-startup-image" href="assets/icon-512x512.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)">
-    <link rel="apple-touch-startup-image" href="assets/icon-512x512.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)">
     <!-- Favicon -->
-    <link rel="icon" href="assets/icon-192x192.png">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -32,49 +14,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-analytics.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
-    <style>
-        /* 基本樣式 */
-        body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            color: #333;
-            background-color: #f9f9f9;
-            overflow: hidden;
-        }
-        
-        /* 登入按鈕點擊效果 */
-        .btn-google {
-            transition: all 0.3s;
-        }
-        
-        .btn-google:active, .btn-google.button-clicked {
-            background-color: #e0e0e0 !important;
-            transform: scale(0.95);
-        }
-        
-        /* 確保登入按鈕在 PWA 模式下更容易點擊 */
-        @media (display-mode: standalone), (display-mode: fullscreen) {
-            .btn-google {
-                padding: 16px !important;
-                margin: 20px auto !important;
-                min-height: 50px !important;
-                cursor: pointer !important;
-                -webkit-tap-highlight-color: rgba(0,0,0,0.2) !important;
-            }
-        }
-    </style>
 </head>
 <body>
-    <!-- 添加調試區域 -->
-    <div id="debug-panel" style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); color: white; font-size: 10px; max-height: 150px; overflow-y: auto; z-index: 10000; padding: 5px;">
-        <div>調試面板</div>
-        <div id="debug-log"></div>
-    </div>
-
-    <!-- PWA 狀態指示器 -->
-    <div id="pwa-status" style="display: none; position: fixed; top: 0; left: 0; right: 0; background: rgba(66, 133, 244, 0.8); color: white; font-size: 12px; padding: 4px 8px; z-index: 9999; text-align: center;">PWA 模式</div>
-
     <!-- 開發者公告 -->
     <div class="announcement-overlay" id="announcementOverlay"></div>
     <div id="developerAnnouncement" class="announcement-modal">
@@ -121,7 +62,7 @@
                 <!-- 側邊欄 -->
                 <aside class="sidebar">
                     <div class="user-info">
-                        <img id="userAvatar" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAABmJLR0QA/wD/AP+gvaeTAAAFWUlEQVR4nO2dW2gdRRjHf01qYhvT1jQ1llgVRaUqKGqLF7wgVkGsICjeBW96Qa0PXkAFwQcFQfBJEcUH9UXFNxVURBCl2IogqFRNa2ubxjQ2sfWSNI1tzPHhOyGbs2fP2Z2Z3T27+/3gkOzZ+Wbmn29nZ+abmTOQSCQSiUQikUgkEolEIpFIJBL5kAEuBQaD1yRxCrgN6AzejEQVHcBzwAywGLwmGQN2AGuCNyVRxRpgJ/A/lcKYBu4DVgVvUWKBVcD9wAxLhTED7ENGTiIiHMAIY4FKYUwDB0mTv6g4gBHGApXC+BG4JXiLEhVsBg5QLYxp4EWgO3iLElV0Ay9QLYxTwF6gK3iLElV0AXuQyb1aGO8C64O3KFHF+ZiRMUulME4CzwJrg7coUcU64DmqhTENvAVsCN6iRBXnAa8ho6FaGO8D5wRvUaKKjcDrVAtjGvgHuCJ4ixJVXA68R7UwpoHXgY3BW5SoYhPwJtXCmAaOAlcGb1Giiq3AEaqFMQ0cAq4K3qJEFdcAH1EtjGngMHBt8BYlqrgOOEa1MKaBT4Drg7coUcX1wKdUC2MaOAHcGLxFiSpuAj6nWhjTwL/AzcFblKhiO/Al1cKYBk4CdwRvUaKK24GvqBbGNPAVcGfwFiWquAv4hmphTAPfAXcHb1Giiu3A91QLYxr4AbgneIsSVdwL/Ei1MKaBn4D7grcoUcX9wM9UC2MaGAUeCN6iRBUPAmNUC2MaOA48FLxFiSp2AL9SLYxp4DfgkeAtSlTxKPA71cKYBv4EHg/eokQVTwB/US2MaeAv4MngLUpU8RTwLvaimALeRTakJiLwCPAe9qKYAt4Bbg3eokQVjwHvYy+KSeBt4LbgLUpUsRN7UUwCbwG3B29RooongA+xF8UE8CZwR/AWJarYhf0bzxPAG8CdwVuUqGI38An2ohgH9gN3BW9RooqngU+xF8U4MkruDt6iRBXPAJ9hL4px4HXSyUFReRb4HHtRjAGvAQ8Hb1Giit3AF9iL4l/gVdKJQVF5DvgSe1H8A7wCPBq8RYkq9gBfYS+Kv4GXgceCt8gjnchwtTkXtVlZi3x33kYUfyH7rB8P2hpPOpEZ/3HkqZ5EhvtxZLjPIvv5diB7/TaRf5/1KmSF9XLgQuQjk5cBlwCXIn+7kMsF+5AzX9YHqL8uepA7eRw5xHcM+QjkGHLAzgRyZ08hzx/1jAFvBK9JIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikcif/wFQaV3gXOJIjQAAAABJRU5ErkJggg==" alt="使用者頭像">
+                        <img id="userAvatar" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAABmJLR0QA/wD/AP+gvaeTAAAFWUlEQVR4nO2dW2gdRRjHf01qYhvT1jQ1llgVRaUqKGqLF7wgVkGsICjeBW96Qa0PXkAFwQcFQfBJEcUH9UXFNxVURBCl2IogqFRNa2ubxjQ2sfWSNI1tzPHhOyGbs2fP2Z2Z3T27+/3gkOzZ+Wbmn29nZ+abmTOQSCQSiUQikUgkEolEIpFIJBL5kAEuBQaD1yRxCrgN6AzejEQVHcBzwAywGLwmGQN2AGuCNyVRxRpgJ/A/lcKYBu4DVgVvUWKBVcD9wAxLhTED7ENGTiIiHMAIY4FKYUwDB0mTv6g4gBHGApXC+BG4JXiLEhVsBg5QLYxp4EWgO3iLElV0Ay9QLYxTwF6gK3iLElV0AXuQyb1aGO8C64O3KFHF+ZiRMUulME4CzwJrg7coUcU64DmqhTENvAVsCN6iRBXnAa8ho6FaGO8D5wRvUaKKjcDrVAtjGvgHuCJ4ixJVXA68R7UwpoHXgY3BW5SoYhPwJtXCmAaOAlcGb1Giiq3AEaqFMQ0cAq4K3qJEFdcAH1EtjGngMHBt8BYlqrgOOEa1MKaBT4Drg7coUcX1wKdUC2MaOAHcGLxFiSpuAj6nWhjTwL/AzcFblKhiO/Al1cKYBk4CdwRvUaKK24GvqBbGNPAVcGfwFiWquAv4hmphTAPfAXcHb1Giiu3A91QLYxr4AbgneIsSVdwL/Ei1MKaBn4D7grcoUcX9wM9UC2MaGAUeCN6iRBUPAmNUC2MaOA48FLxFiSp2AL9SLYxp4DfgkeAtSlTxKPA71cKYBv4EHg/eokQVTwB/US2MaeAv4MngLUpU8RTwLvaimALeRTakJiLwCPAe9qKYAt4Bbg3eokQVjwHvYy+KSeBt4LbgLUpUsRN7UUwCbwG3B29RooongA+xF8UE8CZwR/AWJarYhf0bzxPAG8CdwVuUqGI38An2ohgH9gN3BW9RooqngU+xF8U4MkruDt6iRBXPAJ9hL4px4HXSyUFReRb4HHtRjAGvAQ8Hb1Giit3AF9iL4l/gVdKJQVF5DvgSe1H8A7wCPBq8RYkq9gBfYS+Kv4GXgceCt8gjnchwtTkXtVlZi3x33kYUfyH7rB8P2hpPOpEZ/3HkqZ5EhvtxZLjPIvv5diB7/TaRf5/1KmSF9XLgQuQjk5cBlwCXIn+7kMsF+5AzX9YHqL8uepA7eRw5xHcM+QjkGHLAzgRyZ08g+/n+Qc5PnUL28GvvQtcNbEO+wH8VcAVwGbKefxnyd16KnKXbi9zNPuTfWXQjd7Yf+TdrgQ3I3d2M3O0h5P/Rj/yfNiF3vw/5f3Yj/+9u5HkxgDw/BpHnySDyvBlAnj8DyPNIzaOIxcgA8A1yR48hzx/1jAFvBK9JIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikcif/wFQaV3gXOJIjQAAAABJRU5ErkJggg==" alt="使用者頭像">
                         <span id="userName">使用者名稱</span>
                     </div>
                     <nav class="nav-menu">
@@ -336,98 +277,6 @@
         </div>
     </div>
 
-    <!-- 添加調試按鈕（正式環境可以移除） -->
-    <script>
-    // 添加調試功能
-    document.addEventListener('DOMContentLoaded', function() {
-        // 創建調試按鈕
-        const debugBtn = document.createElement('button');
-        debugBtn.textContent = 'DEBUG';
-        debugBtn.style.cssText = 'position: fixed; bottom: 10px; left: 10px; z-index: 10001; background: red; color: white; border: none; padding: 5px; border-radius: 5px; font-size: 10px; opacity: 0.5;';
-        document.body.appendChild(debugBtn);
-        
-        // 調試面板
-        const debugPanel = document.getElementById('debug-panel');
-        const debugLog = document.getElementById('debug-log');
-        
-        // 點擊按鈕顯示/隱藏調試面板
-        debugBtn.addEventListener('click', function() {
-            debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
-        });
-        
-        // 捕獲 console.log 和 errors
-        const originalConsoleLog = console.log;
-        const originalConsoleError = console.error;
-        const originalConsoleWarn = console.warn;
-        
-        console.log = function() {
-            const args = Array.from(arguments);
-            originalConsoleLog.apply(console, args);
-            
-            const logItem = document.createElement('div');
-            logItem.textContent = '[LOG] ' + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
-            if (debugLog) debugLog.appendChild(logItem);
-            
-            // 限制日誌數量
-            while (debugLog && debugLog.childNodes.length > 100) {
-                debugLog.removeChild(debugLog.firstChild);
-            }
-            
-            // 滾動到底部
-            if (debugPanel) debugPanel.scrollTop = debugPanel.scrollHeight;
-        };
-        
-        console.error = function() {
-            const args = Array.from(arguments);
-            originalConsoleError.apply(console, args);
-            
-            const logItem = document.createElement('div');
-            logItem.textContent = '[ERROR] ' + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
-            logItem.style.color = 'red';
-            if (debugLog) debugLog.appendChild(logItem);
-            
-            if (debugPanel) debugPanel.scrollTop = debugPanel.scrollHeight;
-        };
-        
-        console.warn = function() {
-            const args = Array.from(arguments);
-            originalConsoleWarn.apply(console, args);
-            
-            const logItem = document.createElement('div');
-            logItem.textContent = '[WARN] ' + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
-            logItem.style.color = 'orange';
-            if (debugLog) debugLog.appendChild(logItem);
-            
-            if (debugPanel) debugPanel.scrollTop = debugPanel.scrollHeight;
-        };
-        
-        // 捕獲全局錯誤
-        window.addEventListener('error', function(event) {
-            console.error('Global error:', event.message, 'at', event.filename, 'line', event.lineno);
-        });
-        
-        // 捕獲未處理的 Promise 錯誤
-        window.addEventListener('unhandledrejection', function(event) {
-            console.error('Unhandled promise rejection:', event.reason);
-        });
-        
-        // 檢測 PWA 狀態
-        const pwaStatus = document.getElementById('pwa-status');
-        const isPwa = window.matchMedia('(display-mode: standalone)').matches || 
-                    window.navigator.standalone === true || 
-                    window.location.search.includes('source=pwa');
-                    
-        if (isPwa && pwaStatus) {
-            pwaStatus.style.display = 'block';
-        }
-        
-        // 顯示設備信息
-        console.log('User Agent:', navigator.userAgent);
-        console.log('PWA Mode:', isPwa);
-        console.log('GitHub Pages:', window.location.hostname.includes('github.io'));
-    });
-    </script>
-
     <!-- 先載入配置 -->
     <script src="js/config.js"></script>
     <!-- 再載入其他 JS -->
@@ -436,9 +285,6 @@
     <script src="js/barcodeService.js"></script>
     <script src="js/app.js"></script>
     <script src="js/auth.js"></script>
-    <!-- PWA 增強 -->
-    <script src="js/auth-pwa.js"></script>
-    <script src="js/pwa-handler.js"></script>
     <!-- 修復腳本 -->
     <script src="js/fix-upload.js"></script>
 

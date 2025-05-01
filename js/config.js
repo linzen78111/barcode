@@ -1,16 +1,12 @@
-// 檢查是否為 iOS 設備
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-const isGitHubPages = window.location.hostname.includes('github.io');
-
 // Firebase 配置
 const firebaseConfig = {
-    apiKey: "AIzaSyB1nLKcXpnuSpRvqFWuZwdIVQIhYmDdDfo",
-    authDomain: isGitHubPages ? "barcode-system-4a6c9.firebaseapp.com" : "barcode-system-4a6c9.firebaseapp.com",
-    projectId: "barcode-system-4a6c9",
-    storageBucket: "barcode-system-4a6c9.appspot.com",
-    messagingSenderId: "208580818980",
-    appId: "1:208580818980:web:f88a6c9c2c8bd9fe51feaf",
-    measurementId: "G-LXXQ1KYGE2"
+    apiKey: "AIzaSyAw6yraVBiMPyF9ab4VtgMTaQfqEYhbtTE",
+    authDomain: "chaoshangtiaoma.firebaseapp.com",
+    projectId: "chaoshangtiaoma",
+    storageBucket: "chaoshangtiaoma.firebasestorage.app",
+    messagingSenderId: "995621789085",
+    appId: "1:995621789085:web:8e893bb24c37e37f922374",
+    measurementId: "G-Y5B9YRTKV1"
 };
 
 // 初始化 Firebase
@@ -38,24 +34,4 @@ const auth = firebase.auth();
 auth.useDeviceLanguage();
 
 // 初始化 Analytics
-firebase.analytics();
-
-// 創建 barcodeService 全局對象
-const barcodeService = {
-    db: db,
-    isIOS: isIOS,
-    isGitHubPages: isGitHubPages,
-    
-    // 在 iOS 上強制使用重定向方式
-    forceRedirectAuth: isIOS || isGitHubPages
-};
-
-// 針對 iOS 和 GitHub Pages 環境進行特殊處理
-if (isIOS || isGitHubPages) {
-    console.log('iOS 或 GitHub Pages 環境檢測到，應用特殊登入處理');
-    // 這些設置會被 auth-pwa.js 使用
-    localStorage.setItem('force_redirect_auth', 'true');
-}
-
-// 導出 barcodeService
-window.barcodeService = barcodeService; 
+firebase.analytics(); 

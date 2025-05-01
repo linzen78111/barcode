@@ -1206,12 +1206,14 @@ manualForm.addEventListener('submit', async (e) => {
     // 顯示成功訊息
     await showCustomAlert('已加入，結束後記得送信！');
     
-    // 重置表單並關閉對話框
+    // 重置表單，但留在當前頁面繼續輸入
     manualForm.reset();
-    hideManualModal();
     
-    // 不再顯示本地暫存頁面
-    // document.getElementById('localDataPage').classList.remove('hidden');
+    // 聚焦到條碼輸入欄位，方便繼續輸入
+    const codeInput = document.getElementById('manualCode');
+    if (codeInput) {
+        codeInput.focus();
+    }
 });
 
 // 隱藏手動輸入對話框
@@ -1412,64 +1414,13 @@ window.addEventListener('load', async () => {
     }
 });
 
-// 確保不重複綁定事件
-const ensureEventsAreNotDuplicated = () => {
-    console.log('檢查事件綁定狀態');
-    
-    // 檢查 app.js 是否已經綁定過 googleLoginBtn
-    const googleLoginBtn = document.getElementById('googleLoginBtn');
-    if (googleLoginBtn && googleLoginBtn._appJsHandled) {
-        console.log('app.js 已綁定過登入按鈕事件，不再重複綁定');
-        return;
-    }
-    
-    // 只在非 PWA 模式下綁定事件
-    if (window.matchMedia('(display-mode: standalone)').matches || 
-        window.navigator.standalone === true ||
-        (window.location.search && window.location.search.includes('source=pwa'))) {
-        console.log('在 PWA 模式下，不在 app.js 中綁定登入事件');
-        return;
-    }
-    
-    // 在 DOM 載入完成後綁定事件
-    document.addEventListener('DOMContentLoaded', () => {
-        const googleLoginBtn = document.getElementById('googleLoginBtn');
-        if (googleLoginBtn && !googleLoginBtn._appJsHandled) {
-            console.log('app.js: 綁定 Google 登入按鈕事件');
-            
-            // 標記為已處理
-            googleLoginBtn._appJsHandled = true;
-            
-            googleLoginBtn.addEventListener('click', () => {
-                console.log('app.js: 點擊登入按鈕');
-                googleLogin().catch(error => {
-                    console.error('登入過程發生錯誤:', error);
-                });
-            });
-        }
-    });
-};
-
-// 初始化時調用
-ensureEventsAreNotDuplicated();
-
-// 移除原始代碼中的直接事件綁定
-// document.getElementById('googleLoginBtn').addEventListener('click', () => {
-//    console.log('點擊登入按鈕');
-//    googleLogin().catch(error => {
-//        console.error('登入過程發生錯誤:', error);
-//    });
-// });
-
-// 登入按鈕點擊事件 - 由 auth.js 或 auth-pwa.js 處理
-/*
+// 登入按鈕點擊事件
 document.getElementById('googleLoginBtn').addEventListener('click', () => {
     console.log('點擊登入按鈕');
     googleLogin().catch(error => {
         console.error('登入過程發生錯誤:', error);
     });
 });
-*/
 
 // Firebase 身份驗證狀態變更監聽
 firebase.auth().onAuthStateChanged(async (user) => {
@@ -2060,49 +2011,11 @@ async function showUploadModal() {
         // 顯示錯誤訊息
         await showCustomAlert("無送信資料！", "error");
         
-        // 確保所有頁面都隱藏，再顯示主頁面
-        document.querySelectorAll('.page').forEach(p => {
-            p.classList.add('hidden');
-            p.style.display = 'none';
-        });
-        
-        const mainPage = document.getElementById('mainPage');
-        if (mainPage) {
-            mainPage.classList.remove('hidden');
-            mainPage.style.display = 'block';
-        }
-        
-        // 確保主內容區域可見
-        const mainContent = document.querySelector('.main-content');
-        if (mainContent) {
-            mainContent.style.display = 'block';
-        }
-        
-        // 顯示頂部搜尋區域
-        const contentHeader = document.querySelector('.content-header');
-        if (contentHeader) {
-            contentHeader.style.display = 'flex';
-        }
-        
-        // 顯示條碼列表區域
-        const barcodeList = document.getElementById('barcodeList');
-        if (barcodeList) {
-            barcodeList.style.display = 'block';
-        }
-        
-        // 確保側邊欄導航項目正確激活
-        const navItems = document.querySelectorAll('.nav-item');
-        navItems.forEach(nav => nav.classList.remove('active'));
-        const officialNavItem = document.querySelector('[data-page="official"]');
-        if (officialNavItem) {
-            officialNavItem.classList.add('active');
-        }
-        
-        // 重新載入資料
-        try {
-            await loadBarcodes();
-        } catch (e) {
-            console.error("重新載入資料失敗:", e);
+        // 選擇手輸條碼導航項
+        const manualNavItem = document.querySelector('[data-page="manual"]');
+        if (manualNavItem) {
+            // 模擬點擊手輸條碼選項
+            manualNavItem.click();
         }
         
         return;
@@ -2148,49 +2061,11 @@ async function startUpload() {
             // 清理所有可能存在的彈出視窗和對話框
             cleanupUI();
             
-            // 確保所有頁面都隱藏，再顯示主頁面
-            document.querySelectorAll('.page').forEach(p => {
-                p.classList.add('hidden');
-                p.style.display = 'none';
-            });
-            
-            const mainPage = document.getElementById('mainPage');
-            if (mainPage) {
-                mainPage.classList.remove('hidden');
-                mainPage.style.display = 'block';
-            }
-            
-            // 確保主內容區域可見
-            const mainContent = document.querySelector('.main-content');
-            if (mainContent) {
-                mainContent.style.display = 'block';
-            }
-            
-            // 顯示頂部搜尋區域
-            const contentHeader = document.querySelector('.content-header');
-            if (contentHeader) {
-                contentHeader.style.display = 'flex';
-            }
-            
-            // 顯示條碼列表區域
-            const barcodeList = document.getElementById('barcodeList');
-            if (barcodeList) {
-                barcodeList.style.display = 'block';
-            }
-            
-            // 確保側邊欄導航項目正確激活
-            const navItems = document.querySelectorAll('.nav-item');
-            navItems.forEach(nav => nav.classList.remove('active'));
-            const officialNavItem = document.querySelector('[data-page="official"]');
-            if (officialNavItem) {
-                officialNavItem.classList.add('active');
-            }
-            
-            // 重新載入資料
-            try {
-                await loadBarcodes();
-            } catch (e) {
-                console.error("重新載入資料失敗:", e);
+            // 選擇手輸條碼導航項
+            const manualNavItem = document.querySelector('[data-page="manual"]');
+            if (manualNavItem) {
+                // 模擬點擊手輸條碼選項
+                manualNavItem.click();
             }
             
             // 顯示錯誤訊息

@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 使用輔助函數檢查是否有資料
         if (!hasDataToUpload()) {
-          // 無資料情況
+          // 無資料情況，顯示錯誤並自動切換到手輸條碼頁面
           showNoDataAlert();
           return false;
         }
@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function() {
             modal.style.display = 'none';
           }
           
-          // 顯示錯誤訊息
+          // 顯示錯誤訊息並自動切換到手輸條碼頁面
           showNoDataAlert();
           
           return false;
@@ -226,14 +226,37 @@ document.addEventListener('DOMContentLoaded', function() {
           }
           
           console.log('儲存公告內容到Firebase:', announcementContent.innerHTML);
-          await barcodeService.db.collection('official').doc('announcement').set({
-            content: announcementContent.innerHTML,
-            lastUpdated: firebase.firestore.Timestamp.fromDate(new Date())
-          });
+          
+          // 設置一個超時，防止Firebase的請求無限等待
+          const timeout = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Firebase操作超時')), 5000)
+          );
+          
+          // 競爭Promise，哪個先完成就返回哪個
+          await Promise.race([
+            barcodeService.db.collection('official').doc('announcement').set({
+              content: announcementContent.innerHTML,
+              lastUpdated: firebase.firestore.Timestamp.fromDate(new Date())
+            }),
+            timeout
+          ]);
+          
           console.log('公告內容已成功保存到Firebase');
           return true;
         } catch (error) {
           console.error('保存到Firebase失敗:', error);
+          
+          // 在localStorage中標記錯誤，稍後可以重試
+          try {
+            localStorage.setItem('pendingAnnouncementUpdate', announcementContent.innerHTML);
+            localStorage.setItem('lastFirebaseError', JSON.stringify({
+              time: new Date().toISOString(),
+              message: error.message
+            }));
+          } catch (e) {
+            console.error('無法在localStorage中存儲錯誤信息:', e);
+          }
+          
           return false;
         }
       };
@@ -245,70 +268,95 @@ document.addEventListener('DOMContentLoaded', function() {
         window.showAnnouncement = async function() {
           console.log('調用修改後的showAnnouncement函數');
           
-          // 檢查是否今天已經選擇了不再顯示
-          const lastShown = localStorage.getItem('lastShownAnnouncement');
-          const today = new Date().toDateString();
-          
-          if (lastShown === today) {
-            console.log('用戶選擇今天不再顯示公告，跳過顯示');
-            return Promise.resolve();
-          }
-          
-          // 顯示公告前嘗試從localStorage恢復內容
-          const announcementModal = document.getElementById('developerAnnouncement');
-          const announcementOverlay = document.getElementById('announcementOverlay');
-          const announcementContent = document.getElementById('announcementContent');
-          
-          // 檢查用戶是否為官方帳號
-          const user = firebase.auth().currentUser;
-          const isOfficial = user && user.email === 'apple0902303636@gmail.com';
-          console.log('是否為官方帳號(修復版):', isOfficial);
-          
-          // 設置編輯權限
-          if (announcementContent) {
-            if (isOfficial) {
-              console.log('啟用編輯模式(修復版)');
-              announcementContent.contentEditable = true;
-              announcementContent.classList.add('editable');
-              announcementContent.dataset.isEditing = 'true';
-            } else {
-              console.log('設置為唯讀模式(修復版)');
-              announcementContent.contentEditable = false;
-              announcementContent.classList.remove('editable');
-              announcementContent.dataset.isEditing = 'false';
-            }
-          }
-          
-          // 顯示公告
-          if (announcementModal && announcementOverlay) {
-            // 先嘗試恢復內容
-            const restored = restoreAnnouncementContent();
+          try {
+            // 檢查是否今天已經選擇了不再顯示
+            const lastShown = localStorage.getItem('lastShownAnnouncement');
+            const today = new Date().toDateString();
             
-            // 如果沒有恢復成功，則調用原始函數
-            if (!restored) {
-              await originalShowAnnouncement();
-              
-              // 然後保存從Firebase加載的內容到localStorage
-              saveAnnouncementContent();
-              
-              // 再次設置編輯權限，因為原始函數可能已經設置過了
-              if (announcementContent && isOfficial) {
-                console.log('再次啟用編輯模式(修復版)');
+            if (lastShown === today) {
+              console.log('用戶選擇今天不再顯示公告，跳過顯示');
+              return Promise.resolve();
+            }
+            
+            // 顯示公告前嘗試從localStorage恢復內容
+            const announcementModal = document.getElementById('developerAnnouncement');
+            const announcementOverlay = document.getElementById('announcementOverlay');
+            const announcementContent = document.getElementById('announcementContent');
+            
+            if (!announcementModal || !announcementOverlay || !announcementContent) {
+              console.error('找不到公告所需的DOM元素');
+              return Promise.resolve();
+            }
+            
+            // 檢查用戶是否為官方帳號
+            let isOfficial = false;
+            try {
+              const user = firebase.auth().currentUser;
+              isOfficial = user && user.email === 'apple0902303636@gmail.com';
+              console.log('是否為官方帳號(修復版):', isOfficial);
+            } catch (e) {
+              console.error('檢查用戶身份失敗:', e);
+            }
+            
+            // 設置編輯權限
+            if (announcementContent) {
+              if (isOfficial) {
+                console.log('啟用編輯模式(修復版)');
                 announcementContent.contentEditable = true;
                 announcementContent.classList.add('editable');
                 announcementContent.dataset.isEditing = 'true';
+              } else {
+                console.log('設置為唯讀模式(修復版)');
+                announcementContent.contentEditable = false;
+                announcementContent.classList.remove('editable');
+                announcementContent.dataset.isEditing = 'false';
               }
-            } else {
-              // 直接顯示公告視窗
-              announcementModal.classList.add('active');
-              announcementOverlay.classList.add('active');
             }
             
+            // 顯示公告
+            if (announcementModal && announcementOverlay) {
+              // 先嘗試恢復內容
+              const restored = restoreAnnouncementContent();
+              
+              if (!restored) {
+                try {
+                  // 嘗試從Firebase載入
+                  await originalShowAnnouncement();
+                  
+                  // 然後保存從Firebase加載的內容到localStorage
+                  saveAnnouncementContent();
+                } catch (e) {
+                  console.error('從Firebase載入公告失敗:', e);
+                  // 設置默認公告內容
+                  if (announcementContent) {
+                    announcementContent.innerHTML = '歡迎使用條碼系統！' + 
+                      '<br><small>(無法連接到伺服器，顯示本地公告)</small>';
+                    saveAnnouncementContent();
+                  }
+                }
+                
+                // 再次設置編輯權限，因為原始函數可能已經設置過了
+                if (announcementContent && isOfficial) {
+                  console.log('再次啟用編輯模式(修復版)');
+                  announcementContent.contentEditable = true;
+                  announcementContent.classList.add('editable');
+                  announcementContent.dataset.isEditing = 'true';
+                }
+              }
+              
+              // 確保公告視窗顯示
+              announcementModal.classList.add('active');
+              announcementOverlay.classList.add('active');
+              
+              return Promise.resolve();
+            }
+            
+            // 如果找不到公告元素，則調用原始函數
+            return originalShowAnnouncement();
+          } catch (error) {
+            console.error('顯示公告時發生錯誤:', error);
             return Promise.resolve();
           }
-          
-          // 如果找不到公告元素，則調用原始函數
-          return originalShowAnnouncement();
         };
       }
       
@@ -323,70 +371,86 @@ document.addEventListener('DOMContentLoaded', function() {
         closeButton.addEventListener('click', async function(e) {
           console.log('公告關閉按鈕被點擊（修復版）');
           
-          // 1. 保存公告內容到localStorage
-          saveAnnouncementContent();
-          
-          // 2. 對於官方帳號，確保保存到Firebase
-          const savedToFirebase = await saveToFirebase();
-          
-          // 3. 處理"今天不再顯示"選項
-          if (dontShowCheckbox && dontShowCheckbox.checked) {
-            localStorage.setItem('lastShownAnnouncement', new Date().toDateString());
-            console.log('設置今天不再顯示');
-          }
-          
-          // 4. 關閉公告視窗
-          const announcementModal = document.getElementById('developerAnnouncement');
-          const announcementOverlay = document.getElementById('announcementOverlay');
-          
-          if (announcementModal && announcementOverlay) {
-            announcementModal.classList.remove('active');
-            announcementOverlay.classList.remove('active');
-            console.log('公告視窗已關閉');
-          }
-          
-          // 5. 重置編輯狀態
-          const announcementContent = document.getElementById('announcementContent');
-          if (announcementContent) {
-            announcementContent.contentEditable = false;
-            announcementContent.classList.remove('editable');
-            if (announcementContent.dataset) {
-              announcementContent.dataset.isEditing = 'false';
+          try {
+            // 1. 保存公告內容到localStorage
+            saveAnnouncementContent();
+            
+            // 2. 對於官方帳號，確保保存到Firebase
+            try {
+              const savedToFirebase = await saveToFirebase();
+            } catch (error) {
+              console.error('保存公告到Firebase失敗:', error);
+              // 繼續執行，即使保存失敗
             }
-            console.log('編輯狀態已重置');
-          }
-          
-          // 6. 切換到官方資料頁面（保持與原始行為一致）
-          console.log('切換到官方資料頁面');
-          // 隱藏所有頁面
-          document.querySelectorAll('.page').forEach(p => {
-            p.classList.add('hidden');
-            if (p.style) p.style.display = 'none';
-          });
-          
-          // 顯示主頁面
-          const mainPage = document.getElementById('mainPage');
-          if (mainPage) {
-            mainPage.classList.remove('hidden');
-            if (mainPage.style) mainPage.style.display = 'block';
-          }
-          
-          // 移除所有導航項目的 active 類
-          const navItems = document.querySelectorAll('.nav-item');
-          navItems.forEach(nav => nav.classList.remove('active'));
-          
-          // 設置官方資料頁籤為活動狀態
-          const officialTab = document.querySelector('[data-page="official"]');
-          if (officialTab) {
-            officialTab.classList.add('active');
-            // 載入條碼資料
-            if (window.loadBarcodes) {
-              try {
-                await window.loadBarcodes();
-              } catch (error) {
-                console.error('載入條碼資料失敗:', error);
+            
+            // 3. 處理"今天不再顯示"選項
+            if (dontShowCheckbox && dontShowCheckbox.checked) {
+              localStorage.setItem('lastShownAnnouncement', new Date().toDateString());
+              console.log('設置今天不再顯示');
+            }
+            
+            // 4. 關閉公告視窗
+            const announcementModal = document.getElementById('developerAnnouncement');
+            const announcementOverlay = document.getElementById('announcementOverlay');
+            
+            if (announcementModal && announcementOverlay) {
+              announcementModal.classList.remove('active');
+              announcementOverlay.classList.remove('active');
+              console.log('公告視窗已關閉');
+            }
+            
+            // 5. 重置編輯狀態
+            const announcementContent = document.getElementById('announcementContent');
+            if (announcementContent) {
+              announcementContent.contentEditable = false;
+              announcementContent.classList.remove('editable');
+              if (announcementContent.dataset) {
+                announcementContent.dataset.isEditing = 'false';
+              }
+              console.log('編輯狀態已重置');
+            }
+            
+            // 6. 切換到官方資料頁面（保持與原始行為一致）
+            console.log('切換到官方資料頁面');
+            // 隱藏所有頁面
+            document.querySelectorAll('.page').forEach(p => {
+              p.classList.add('hidden');
+              if (p.style) p.style.display = 'none';
+            });
+            
+            // 顯示主頁面
+            const mainPage = document.getElementById('mainPage');
+            if (mainPage) {
+              mainPage.classList.remove('hidden');
+              if (mainPage.style) mainPage.style.display = 'block';
+            }
+            
+            // 移除所有導航項目的 active 類
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(nav => nav.classList.remove('active'));
+            
+            // 設置官方資料頁籤為活動狀態
+            const officialTab = document.querySelector('[data-page="official"]');
+            if (officialTab) {
+              officialTab.classList.add('active');
+              // 載入條碼資料
+              if (window.loadBarcodes) {
+                try {
+                  await window.loadBarcodes();
+                } catch (error) {
+                  console.error('載入條碼資料失敗:', error);
+                }
               }
             }
+          } catch (error) {
+            console.error('關閉公告時發生錯誤:', error);
+            
+            // 確保無論如何都關閉公告視窗
+            const announcementModal = document.getElementById('developerAnnouncement');
+            const announcementOverlay = document.getElementById('announcementOverlay');
+            
+            if (announcementModal) announcementModal.classList.remove('active');
+            if (announcementOverlay) announcementOverlay.classList.remove('active');
           }
           
           return false; // 阻止原有的點擊事件
@@ -519,12 +583,9 @@ document.addEventListener('DOMContentLoaded', function() {
   
   observer.observe(document.body, { childList: true, subtree: true });
   
-  // 專用於顯示無資料警告的函數 - 完全重寫以確保不會切換頁面
+  // 專用於顯示無資料警告的函數
   function showNoDataAlert() {
-    // 標記開始執行 - 防止重複執行
-    console.log('開始執行 showNoDataAlert (新版) - ' + new Date().toISOString());
-    
-    // 移除任何已存在的對話框
+    // 檢查是否已存在警告對話框
     const existingDialogs = document.querySelectorAll('.browser-dialog, .browser-dialog-overlay');
     existingDialogs.forEach(dialog => dialog.remove());
     
@@ -532,7 +593,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const dialog = document.createElement('div');
     dialog.className = 'browser-dialog';
     dialog.setAttribute('data-type', 'error');
-    dialog.setAttribute('data-version', '2.0'); // 添加版本標記以確保新代碼運行
     
     dialog.innerHTML = `
       <div class="browser-dialog-content">
@@ -557,31 +617,32 @@ document.addEventListener('DOMContentLoaded', function() {
       dialog.classList.add('active');
     });
     
-    // 簡化的關閉對話框函數 - 不做任何頁面切換
+    // 關閉對話框的函數
     const closeDialog = () => {
-      console.log('關閉無資料警告對話框 - 不做頁面切換');
-      
-      // 移除動畫類
       dialog.classList.remove('active');
       overlay.classList.remove('active');
-      
-      // 延遲移除元素
       setTimeout(() => {
         dialog.remove();
         overlay.remove();
-        console.log('已完全移除對話框元素');
+        
+        // 隱藏所有頁面
+        document.querySelectorAll('.page').forEach(p => {
+          p.classList.add('hidden');
+        });
+        
+        // 選擇手輸條碼導航項
+        const manualNavItem = document.querySelector('[data-page="manual"]');
+        if (manualNavItem) {
+          // 模擬點擊手輸條碼選項
+          manualNavItem.click();
+        }
       }, 300);
     };
     
     // 點擊確定按鈕關閉
     const confirmBtn = dialog.querySelector('#alertConfirmBtn');
     if (confirmBtn) {
-      confirmBtn.onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        closeDialog();
-        return false;
-      };
+      confirmBtn.onclick = closeDialog;
     }
     
     // ESC 鍵關閉
