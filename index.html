@@ -5,14 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>條碼系統</title>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/pwa.css">
-    <!-- PWA相關標記 -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#4a90e2">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="條碼系統">
-    <link rel="apple-touch-icon" href="assets/icon-192x192.png">
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
     <!-- Firebase SDK -->
@@ -24,11 +16,6 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
-    <!-- 離線指示器 -->
-    <div class="offline-indicator" id="offlineIndicator">
-        您目前處於離線模式
-    </div>
-    
     <!-- 開發者公告 -->
     <div class="announcement-overlay" id="announcementOverlay"></div>
     <div id="developerAnnouncement" class="announcement-modal">
@@ -290,41 +277,16 @@
         </div>
     </div>
 
-    <!-- 檢測網路連接和離線狀態的腳本 -->
-    <script>
-        // 檢測網路連接和離線狀態
-        function updateOnlineStatus() {
-            const offlineIndicator = document.getElementById('offlineIndicator');
-            
-            if (navigator.onLine) {
-                offlineIndicator.classList.remove('show');
-            } else {
-                offlineIndicator.classList.add('show');
-                
-                // 5秒後自動隱藏離線提示
-                setTimeout(() => {
-                    offlineIndicator.classList.remove('show');
-                }, 5000);
-            }
-        }
-
-        window.addEventListener('online', updateOnlineStatus);
-        window.addEventListener('offline', updateOnlineStatus);
-        
-        // 頁面載入時檢測狀態
-        document.addEventListener('DOMContentLoaded', updateOnlineStatus);
-    </script>
-
-    <!-- 載入應用程式的腳本 -->
+    <!-- 先載入配置 -->
     <script src="js/config.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/barcodeService.js"></script>
-    <script src="js/local-manager.js"></script>
+    <!-- 再載入其他 JS -->
     <script src="js/custom-confirm.js"></script>
+    <script src="js/local-manager.js"></script>
+    <script src="js/barcodeService.js"></script>
     <script src="js/app.js"></script>
-    
-    <!-- PWA註冊腳本 -->
-    <script src="js/pwa.js"></script>
+    <script src="js/auth.js"></script>
+    <!-- 修復腳本 -->
+    <script src="js/fix-upload.js"></script>
 
     <!-- 條碼項目範本 -->
     <template id="barcodeItemTemplate">
