@@ -2267,3 +2267,51 @@ window.startUpload = startUpload;
 
 // 設置函數為全局可用
 window.showCustomAlert = showCustomAlert;
+
+// 檢查網絡狀態並通知用戶
+function checkNetworkStatus() {
+    const isOnline = navigator.onLine;
+    const statusMessage = document.createElement('div');
+    statusMessage.id = 'network-status';
+    statusMessage.style.position = 'fixed';
+    statusMessage.style.bottom = '20px';
+    statusMessage.style.right = '20px';
+    statusMessage.style.padding = '10px 15px';
+    statusMessage.style.borderRadius = '4px';
+    statusMessage.style.color = 'white';
+    statusMessage.style.fontWeight = 'bold';
+    statusMessage.style.zIndex = '1000';
+    statusMessage.style.transition = 'opacity 0.5s';
+    statusMessage.style.opacity = '0.9';
+    
+    if (!isOnline) {
+        statusMessage.textContent = '您處於離線模式';
+        statusMessage.style.backgroundColor = '#e53935';
+        document.body.appendChild(statusMessage);
+        
+        setTimeout(() => {
+            statusMessage.style.opacity = '0';
+            setTimeout(() => {
+                if (document.body.contains(statusMessage)) {
+                    document.body.removeChild(statusMessage);
+                }
+            }, 500);
+        }, 3000);
+    }
+}
+
+// 監聽網絡狀態變化
+window.addEventListener('online', () => {
+    checkNetworkStatus();
+    showCustomAlert('網絡已連接', 'success');
+});
+
+window.addEventListener('offline', () => {
+    checkNetworkStatus();
+    showCustomAlert('網絡已斷開連接，已切換到離線模式', 'warning');
+});
+
+// 初始檢查網絡狀態
+document.addEventListener('DOMContentLoaded', () => {
+    checkNetworkStatus();
+});
