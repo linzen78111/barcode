@@ -1,7 +1,7 @@
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import json
 import os
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlparse
 import base64
 
 class ImageUploadHandler(SimpleHTTPRequestHandler):
@@ -38,6 +38,30 @@ class ImageUploadHandler(SimpleHTTPRequestHandler):
         else:
             self.send_response(404)
             self.end_headers()
+
+    def guess_type(self, path):
+        """重寫 MIME 類型猜測方法"""
+        base, ext = os.path.splitext(path)
+        if ext == '.js':
+            return 'application/javascript'
+        return super().guess_type(path)
+
+    def translate_path(self, path):
+        """重寫路徑轉換方法"""
+        # 解析 URL 路徑
+        parsed_path = urlparse(path)
+        path = parsed_path.path
+        
+        # 移除開頭的斜線
+        if path.startswith('/'):
+            path = path[1:]
+            
+        # 如果路徑為空，返回 index.html
+        if not path:
+            path = 'index.html'
+            
+        # 返回相對於當前目錄的完整路徑
+        return os.path.join(os.getcwd(), path)
 
 def run(server_class=HTTPServer, handler_class=ImageUploadHandler, port=8000):
     server_address = ('', port)
