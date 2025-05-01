@@ -42,42 +42,5 @@ function initializeAuth() {
     }
 }
 
-// 監聽登入狀態
-firebase.auth().onAuthStateChanged(async (user) => {
-    console.log('登入狀態改變:', user);
-    if (user) {
-        // 使用者已登入
-        if (loginPage) loginPage.classList.add('hidden');
-        if (mainPage) mainPage.classList.remove('hidden');
-        
-        // 更新使用者資訊
-        if (userAvatar) userAvatar.src = user.photoURL || 'assets/default-avatar.png';
-        if (userName) {
-            userName.textContent = user.displayName || '使用者';
-            
-            // 檢查是否為官方帳號，先確認barcodeService是否存在
-            try {
-                if (typeof barcodeService !== 'undefined' && barcodeService) {
-                    const isOfficial = await barcodeService.isOfficialAccount();
-                    if (isOfficial) {
-                        userName.innerHTML = `${user.displayName || '使用者'} <span class="official-badge">官方帳號</span>`;
-                    }
-                }
-            } catch (error) {
-                console.error('檢查官方帳號失敗:', error);
-            }
-        }
-        
-        // 初始化資料（在 app.js 中定義）
-        if (typeof initializeData === 'function') {
-            initializeData();
-        }
-    } else {
-        // 使用者未登入
-        if (loginPage) loginPage.classList.remove('hidden');
-        if (mainPage) mainPage.classList.add('hidden');
-    }
-});
-
 // 在 DOM 載入完成後初始化
 document.addEventListener('DOMContentLoaded', initializeAuth); 
