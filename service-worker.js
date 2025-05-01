@@ -1,20 +1,20 @@
 const CACHE_NAME = 'barcode-system-v1';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/offline.html',
-  '/css/style.css',
-  '/css/pwa.css',
-  '/js/app.js',
-  '/js/auth.js',
-  '/js/barcodeService.js',
-  '/js/config.js',
-  '/js/custom-confirm.js',
-  '/js/local-manager.js',
-  '/js/pwa.js',
-  '/assets/icon-192x192.png',
-  '/assets/icon-512x512.png',
-  '/manifest.json',
+  './',
+  './index.html',
+  './offline.html',
+  './css/style.css',
+  './css/pwa.css',
+  './js/app.js',
+  './js/auth.js',
+  './js/barcodeService.js',
+  './js/config.js',
+  './js/custom-confirm.js',
+  './js/local-manager.js',
+  './js/pwa.js',
+  './assets/icon-192x192.png',
+  './assets/icon-512x512.png',
+  './manifest.json',
   'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
   'https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js',
   'https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js',
@@ -76,7 +76,7 @@ self.addEventListener('fetch', (event) => {
       fetch(event.request)
         .catch(() => {
           // 網路請求失敗時，回傳離線頁面
-          return caches.match('/offline.html');
+          return caches.match('./offline.html');
         })
     );
     return;
@@ -120,11 +120,11 @@ self.addEventListener('push', (event) => {
     
     self.registration.showNotification(notification.title, {
       body: notification.body,
-      icon: '/assets/icon-192x192.png',
-      badge: '/assets/icon-192x192.png',
+      icon: './assets/icon-192x192.png',
+      badge: './assets/icon-192x192.png',
       vibrate: [100, 50, 100],
       data: {
-        url: notification.url || '/'
+        url: notification.url || './'
       }
     });
   }
