@@ -13,6 +13,12 @@ function isPwaMode() {
            (window.location.search && window.location.search.includes('source=pwa'));
 }
 
+// 檢查是否在 GitHub Pages 上
+function isGitHubPages() {
+    return window.location.hostname.includes('github.io') || 
+           localStorage.getItem('is_github_pages') === 'true';
+}
+
 // 初始化 PWA 相關認證邏輯
 function initPwaAuth() {
     console.log('初始化 PWA 認證環境...');
@@ -49,6 +55,13 @@ function initPwaAuth() {
     
     // 強制檢查一次認證狀態
     setTimeout(ensureAuthStateConsistency, 1000);
+    
+    // 檢查 URL 參數，看是否是從認證回調過來的
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('github_auth_callback') || urlParams.has('auth_success')) {
+        console.log('檢測到認證回調參數，處理登入後流程');
+        checkRedirectResult();
+    }
 }
 
 // 移除所有事件監聽器以防止重複觸發
@@ -66,7 +79,7 @@ function removeAllEventListeners() {
     }
 }
 
-// PWA 環境下的 Google 登入處理
+// PWA 環境下的 Google 登入處理 - 徹底重寫此函數
 async function handlePwaGoogleLogin(event) {
     // 阻止原始事件
     event.preventDefault();
@@ -84,80 +97,91 @@ async function handlePwaGoogleLogin(event) {
     console.log('使用 PWA 特定的 Google 登入流程');
     
     try {
+        // 獲取當前 URL 以用於後續使用
+        let currentBaseUrl = window.location.href.split('?')[0];
+        if (currentBaseUrl.endsWith('/')) {
+            currentBaseUrl = currentBaseUrl + 'index.html';
+        }
+        
         // 確保清除之前可能存在的登入彈窗
         const auth = firebase.auth();
         
         // 使用重定向而非彈窗方式
         const provider = new firebase.auth.GoogleAuthProvider();
-        provider.setCustomParameters({
-            prompt: 'select_account'
-        });
         
-        // 檢測是否在 GitHub Pages 上
-        const isGitHubPages = window.location.hostname.includes('github.io');
-        console.log('是否在 GitHub Pages 環境：', isGitHubPages);
+        // 顯示載入狀態
+        displayLoadingState();
         
-        // 檢測裝置類型
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        
-        // 保存當前 URL 以便登入後返回
-        const currentUrl = window.location.href;
-        localStorage.setItem('auth_return_url', currentUrl);
-        localStorage.setItem('auth_pending', 'true');
-        localStorage.setItem('auth_pending_time', Date.now().toString());
-        
-        // 在 GitHub Pages 上總是使用重定向方式
-        if (isGitHubPages || isIOS) {
-            console.log('使用重定向登入方式 (GitHub Pages 或 iOS)');
-            displayLoadingState();
+        // 在 GitHub Pages 環境下的處理
+        if (isGitHubPages()) {
+            console.log('GitHub Pages 環境：使用專用登入流程');
             
+            // 構建回調 URL - 確保添加特殊參數以便區分
+            const callbackUrl = `${currentBaseUrl}?github_auth_callback=true&source=pwa&time=${Date.now()}`;
+            console.log('設置回調 URL:', callbackUrl);
+            
+            // 保存登入狀態到 localStorage
+            localStorage.setItem('auth_pending', 'true');
+            localStorage.setItem('auth_pending_time', Date.now().toString());
+            localStorage.setItem('auth_redirect_url', callbackUrl);
+            
+            // 配置登入參數
+            provider.setCustomParameters({
+                prompt: 'select_account',
+                redirect_uri: callbackUrl
+            });
+            
+            // 對於 GitHub Pages，強制使用重定向方式
             try {
-                // 嘗試使用重定向
-                provider.setCustomParameters({
-                    prompt: 'select_account',
-                    // 將當前 URL 作為重定向目標
-                    redirect_uri: currentUrl
-                });
-                
+                console.log('執行重定向登入...');
                 await auth.signInWithRedirect(provider);
-                console.log('重定向登入已啟動');
-            } catch (redirectError) {
-                console.error('重定向登入失敗:', redirectError);
+                console.log('重定向登入請求已發送');
+            } catch (error) {
+                console.error('重定向登入失敗:', error);
                 hideLoadingState();
                 
-                // 顯示友好錯誤訊息
-                alert('登入過程中斷。請確保您允許彈窗並再試一次。');
+                // 顯示更明確的錯誤消息
+                alert(`登入程序發生問題：${error.message}\n請確保您允許彈窗並刷新頁面後再試。`);
                 loginInProgress = false;
             }
         } else {
-            // 非 GitHub Pages/iOS 環境使用常規方式
-            try {
-                console.log('嘗試使用彈窗登入');
-                const result = await auth.signInWithPopup(provider);
-                processSuccessfulLogin(result.user);
-            } catch (popupError) {
-                console.warn('彈窗登入失敗，降級為重定向方式:', popupError);
-                
-                if (popupError.code === 'auth/cancelled-popup-request' || 
-                    popupError.message.includes('conflicting popup')) {
-                    console.log('檢測到彈窗衝突，使用重定向方式');
-                    displayLoadingState();
+            // 非 GitHub Pages 環境下的處理
+            console.log('非 GitHub Pages 環境：使用標準登入流程');
+            
+            // 在 iOS 上也使用重定向方式
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            
+            // 保存當前 URL 以便登入後返回
+            localStorage.setItem('auth_return_url', window.location.href);
+            localStorage.setItem('auth_pending', 'true');
+            localStorage.setItem('auth_pending_time', Date.now().toString());
+            
+            if (isIOS) {
+                console.log('iOS 環境：使用重定向登入');
+                try {
+                    await auth.signInWithRedirect(provider);
+                } catch (error) {
+                    console.error('重定向登入失敗:', error);
+                    hideLoadingState();
+                    alert(`登入失敗: ${error.message}`);
+                    loginInProgress = false;
+                }
+            } else {
+                // 非 iOS 設備嘗試彈窗登入
+                try {
+                    console.log('嘗試使用彈窗登入');
+                    const result = await auth.signInWithPopup(provider);
+                    processSuccessfulLogin(result.user);
+                } catch (popupError) {
+                    console.warn('彈窗登入失敗，降級為重定向方式:', popupError);
                     
                     try {
                         await auth.signInWithRedirect(provider);
-                    } catch (error) {
+                    } catch (redirectError) {
                         hideLoadingState();
-                        console.error('重定向登入失敗:', error);
-                        throw error;
-                    }
-                } else {
-                    displayLoadingState();
-                    try {
-                        await auth.signInWithRedirect(provider);
-                    } catch (error) {
-                        hideLoadingState();
-                        console.error('重定向登入失敗:', error);
-                        throw error;
+                        console.error('重定向登入失敗:', redirectError);
+                        alert(`登入失敗: ${redirectError.message}`);
+                        loginInProgress = false;
                     }
                 }
             }
@@ -172,14 +196,7 @@ async function handlePwaGoogleLogin(event) {
         loginInProgress = false;
         
         // 顯示友好錯誤消息
-        if (error.code === 'auth/popup-closed-by-user') {
-            alert('您關閉了登入視窗，請再試一次。');
-        } else if (error.code === 'auth/cancelled-popup-request' || 
-                  error.message.includes('conflicting popup')) {
-            alert('登入程序被中斷，請等待幾秒後再試。');
-        } else {
-            alert(`登入失敗: ${error.message}`);
-        }
+        alert(`登入失敗: ${error.message}`);
     }
 }
 
@@ -191,6 +208,9 @@ function processSuccessfulLogin(user) {
     
     // 重置登入進行中標記
     loginInProgress = false;
+    
+    // 關閉載入指示
+    hideLoadingState();
     
     // 確保登入成功後顯示主頁面
     setTimeout(() => {
@@ -278,55 +298,120 @@ function hideLoadingState() {
     }
 }
 
-// 檢查登入重定向結果
+// 檢查登入重定向結果 - 增強重定向處理
 async function checkRedirectResult() {
     try {
         console.log('檢查重定向登入結果...');
         const auth = firebase.auth();
         
-        // 使用 try-catch 包裹 getRedirectResult
-        let result;
-        try {
-            result = await auth.getRedirectResult();
-        } catch (redirectError) {
-            console.error('獲取重定向結果出錯:', redirectError);
-            // 這裡仍然需要重置 loginInProgress
-            loginInProgress = false;
-            return;
-        }
-        
-        // 移除載入狀態
-        hideLoadingState();
-        
-        if (result.user) {
-            console.log('重定向登入成功:', result.user.displayName);
+        // 如果是 GitHub Pages 環境，特殊處理
+        if (isGitHubPages()) {
+            console.log('GitHub Pages 環境：特殊處理重定向結果');
             
-            // 確保登入成功後顯示主頁面
-            processSuccessfulLogin(result.user);
+            // 顯示載入狀態
+            displayLoadingState();
             
-            // 通知應用登入成功
-            try {
-                window.dispatchEvent(new CustomEvent('pwa-login-success', { 
-                    detail: { user: result.user } 
-                }));
-                console.log('已發送登入成功事件');
-            } catch (e) {
-                console.error('發送登入成功事件失敗:', e);
-            }
-        } else {
-            console.log('無重定向登入結果或用戶取消登入');
-            
-            // 清除登入中標記
-            localStorage.removeItem('auth_pending');
-            localStorage.removeItem('auth_pending_time');
-            loginInProgress = false;
-            
-            // 檢查當前用戶狀態，確保 UI 正確
+            // 檢查當前用戶狀態
             const currentUser = auth.currentUser;
             if (currentUser) {
-                console.log('用戶已登入，顯示主頁面:', currentUser.displayName);
-                // 直接顯示主頁面
-                directlyShowMainPage(currentUser);
+                console.log('用戶已登入狀態，直接處理:', currentUser.displayName);
+                processSuccessfulLogin(currentUser);
+                return;
+            }
+            
+            // 從 URL 中提取參數
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('github_auth_callback') || urlParams.has('auth_success')) {
+                console.log('偵測到認證回調，嘗試獲取認證結果');
+                
+                // 清除 URL 中的參數以防止循環
+                const cleanUrl = window.location.pathname;
+                history.replaceState(null, '', cleanUrl);
+                
+                // 監聽認證狀態變化
+                const authUnsubscribe = auth.onAuthStateChanged(user => {
+                    // 只執行一次
+                    authUnsubscribe();
+                    
+                    if (user) {
+                        console.log('成功獲取用戶:', user.displayName);
+                        processSuccessfulLogin(user);
+                    } else {
+                        console.log('未能獲取用戶，嘗試手動檢查');
+                        // 嘗試手動獲取重定向結果
+                        auth.getRedirectResult().then(result => {
+                            if (result && result.user) {
+                                processSuccessfulLogin(result.user);
+                            } else {
+                                console.log('重定向登入失敗或被取消');
+                                hideLoadingState();
+                                loginInProgress = false;
+                            }
+                        }).catch(error => {
+                            console.error('獲取重定向結果錯誤:', error);
+                            hideLoadingState();
+                            alert(`登入處理失敗: ${error.message}`);
+                            loginInProgress = false;
+                        });
+                    }
+                });
+                
+                // 設置超時，避免無限等待
+                setTimeout(() => {
+                    hideLoadingState();
+                    if (loginInProgress) {
+                        loginInProgress = false;
+                        console.log('登入超時，請重試');
+                    }
+                }, 15000);
+            }
+        } else {
+            // 標準重定向結果處理
+            // 使用 try-catch 包裹 getRedirectResult
+            let result;
+            try {
+                result = await auth.getRedirectResult();
+            } catch (redirectError) {
+                console.error('獲取重定向結果出錯:', redirectError);
+                // 這裡仍然需要重置 loginInProgress
+                hideLoadingState();
+                loginInProgress = false;
+                return;
+            }
+            
+            // 移除載入狀態
+            hideLoadingState();
+            
+            if (result.user) {
+                console.log('重定向登入成功:', result.user.displayName);
+                
+                // 確保登入成功後顯示主頁面
+                processSuccessfulLogin(result.user);
+                
+                // 通知應用登入成功
+                try {
+                    window.dispatchEvent(new CustomEvent('pwa-login-success', { 
+                        detail: { user: result.user } 
+                    }));
+                    console.log('已發送登入成功事件');
+                } catch (e) {
+                    console.error('發送登入成功事件失敗:', e);
+                }
+            } else {
+                console.log('無重定向登入結果或用戶取消登入');
+                
+                // 清除登入中標記
+                localStorage.removeItem('auth_pending');
+                localStorage.removeItem('auth_pending_time');
+                loginInProgress = false;
+                
+                // 檢查當前用戶狀態，確保 UI 正確
+                const currentUser = auth.currentUser;
+                if (currentUser) {
+                    console.log('用戶已登入，顯示主頁面:', currentUser.displayName);
+                    // 直接顯示主頁面
+                    directlyShowMainPage(currentUser);
+                }
             }
         }
     } catch (error) {
@@ -459,7 +544,7 @@ function handlePwaLogout() {
         
         // 重新載入頁面確保清除所有狀態
         setTimeout(() => {
-            window.location.href = '/?source=pwa&logout=true';
+            window.location.href = './?source=pwa&logout=true';
         }, 100);
     }).catch(error => {
         console.error('登出失敗:', error);
