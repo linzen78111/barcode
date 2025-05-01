@@ -12,21 +12,21 @@ function initializeAuth() {
     userName = document.getElementById('userName');
 
     // Google 登入
-    if (googleLoginBtn) {
-        googleLoginBtn.addEventListener('click', async () => {
-            try {
-                const provider = new firebase.auth.GoogleAuthProvider();
-                provider.setCustomParameters({
-                    prompt: 'select_account'
-                });
-                const result = await firebase.auth().signInWithPopup(provider);
-                console.log('登入成功:', result.user);
-            } catch (error) {
-                console.error('登入失敗:', error);
-                alert(`登入失敗: ${error.message}`);
-            }
-        });
-    }
+    // if (googleLoginBtn) {
+    //     googleLoginBtn.addEventListener('click', async () => {
+    //         try {
+    //             const provider = new firebase.auth.GoogleAuthProvider();
+    //             provider.setCustomParameters({
+    //                 prompt: 'select_account'
+    //             });
+    //             const result = await firebase.auth().signInWithRedirect(provider);
+    //             console.log('登入成功:', result.user);
+    //         } catch (error) {
+    //             console.error('登入失敗:', error);
+    //             alert(`登入失敗: ${error.message}`);
+    //         }
+    //     });
+    // }
 
     // 登出
     if (logoutBtn) {
