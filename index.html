@@ -23,16 +23,48 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
     <!-- PWA Service Worker 註冊 -->
     <script>
+        // 檢查是否支援 Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./js/service-worker.js')
-                    .then(registration => {
-                        console.log('Service Worker 註冊成功:', registration.scope);
-                    })
-                    .catch(error => {
-                        console.log('Service Worker 註冊失敗:', error);
-                    });
+                // 使用 try-catch 包裝 Service Worker 註冊
+                try {
+                    navigator.serviceWorker.register('/js/service-worker.js')
+                        .then(registration => {
+                            console.log('Service Worker 註冊成功，範圍:', registration.scope);
+                            
+                            // 監聽 Service Worker 更新
+                            registration.addEventListener('updatefound', () => {
+                                // 當發現新的 Service Worker 時
+                                const newWorker = registration.installing;
+                                console.log('發現新的 Service Worker 正在安裝');
+                                
+                                newWorker.addEventListener('statechange', () => {
+                                    console.log('Service Worker 狀態:', newWorker.state);
+                                    
+                                    // 當新的 Service Worker 激活時
+                                    if (newWorker.state === 'activated') {
+                                        console.log('新的 Service Worker 已啟用，可以刷新頁面使用');
+                                    }
+                                });
+                            });
+                        })
+                        .catch(error => {
+                            console.error('Service Worker 註冊失敗:', error);
+                        });
+                } catch (error) {
+                    console.error('Service Worker 註冊過程中發生錯誤:', error);
+                }
+                
+                // 確保頁面在 Service Worker 錯誤時仍能正常工作
+                window.addEventListener('error', (event) => {
+                    if (event.filename && event.filename.includes('service-worker')) {
+                        console.warn('捕獲到 Service Worker 相關錯誤，繼續加載頁面');
+                        event.preventDefault();
+                    }
+                });
             });
+        } else {
+            console.warn('此瀏覽器不支援 Service Worker，離線功能將不可用');
         }
     </script>
 </head>
