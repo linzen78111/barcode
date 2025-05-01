@@ -25,6 +25,13 @@
 async function initializeData() {
     try {
         console.log('初始化資料');
+        // 初始化 PWA 處理程序
+        if (window.pwaHandler) {
+            console.log('初始化 PWA 處理程序');
+            await window.pwaHandler.init();
+        } else {
+            console.warn('未找到 PWA 處理程序');
+        }
         await loadBarcodes();
         updateLocalDataList();
         console.log('資料初始化完成');

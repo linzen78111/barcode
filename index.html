@@ -4,7 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>條碼系統</title>
+    <meta name="description" content="條碼管理與掃描系統">
+    <meta name="theme-color" content="#3498db">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/offline.css">
+    <!-- PWA設定 -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="條碼系統">
+    <link rel="apple-touch-icon" href="assets/chart.jpg">
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
     <!-- Firebase SDK -->
@@ -283,6 +292,7 @@
     <script src="js/custom-confirm.js"></script>
     <script src="js/local-manager.js"></script>
     <script src="js/barcodeService.js"></script>
+    <script src="js/pwa-handler.js"></script>
     <script src="js/app.js"></script>
     <script src="js/auth.js"></script>
     <!-- 修復腳本 -->
@@ -306,5 +316,14 @@
             <div class="description-text"></div>
         </div>
     </template>
+
+    <!-- 添加service worker註冊腳本 -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js');
+            });
+        }
+    </script>
 </body>
 </html> 

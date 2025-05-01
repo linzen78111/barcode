@@ -1,0 +1,47 @@
+/* 離線模式的樣式 */
+
+/* 當瀏覽器離線時應用於 body 的類別 */
+body.offline-mode::before {
+    content: "⚠️ 離線模式";
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 5px;
+    background-color: #f39c12;
+    color: white;
+    text-align: center;
+    font-weight: bold;
+    z-index: 9999;
+    font-size: 0.85rem;
+}
+
+body.offline-mode {
+    padding-top: 30px; /* 為離線通知條提供空間 */
+}
+
+/* 當離線時，隱藏需要網路連接的功能 */
+body.offline-mode .requires-connection {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* 顯示離線特有的提示 */
+body.offline-mode .offline-notice {
+    display: block !important;
+}
+
+.offline-notice {
+    display: none;
+    background-color: #f8f9fa;
+    border-left: 4px solid #f39c12;
+    padding: 10px;
+    margin: 10px 0;
+    font-size: 0.85rem;
+}
+
+/* 離線時卡片樣式 */
+body.offline-mode .barcode-item {
+    border-left: 3px solid #f39c12;
+} 
