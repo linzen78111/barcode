@@ -1405,21 +1405,20 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // 在頁面載入時檢查登入狀態
-window.addEventListener('load', async () => {
-    try {
-        // 檢查是否有重定向結果
-        const result = await firebase.auth().getRedirectResult();
-        if (result.user) {
-            console.log("重定向登入成功");
-            await handleLoginSuccess(result.user);
-        }
-
-        // 移除全螢幕請求
-        // requestFullscreen();
-    } catch (error) {
-        console.error("處理登入狀態時發生錯誤:", error);
-    }
-});
+// window.addEventListener('load', async () => {
+//     try {
+//         // 檢查是否有重定向結果
+//         const result = await firebase.auth().getRedirectResult();
+//         if (result.user) {
+//             console.log("重定向登入成功");
+//             await handleLoginSuccess(result.user);
+//         }
+//         // 移除全螢幕請求
+//         // requestFullscreen();
+//     } catch (error) {
+//         console.error("處理登入狀態時發生錯誤:", error);
+//     }
+// });
 
 // 登入按鈕點擊事件
 document.getElementById('googleLoginBtn').addEventListener('click', () => {
@@ -1798,10 +1797,23 @@ async function googleLogin() {
 
         const auth = firebase.auth();
         await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-        await auth.signInWithRedirect(provider);
+        
+        const result = await auth.signInWithPopup(provider);
+        if (result.user) {
+            console.log("登入成功");
+            await handleLoginSuccess(result.user);
+        }
     } catch (error) {
         console.error("登入錯誤:", error);
-        await showCustomAlert("登入失敗：" + error.message, 'error');
+        // 如果彈出視窗被阻擋，嘗試使用重定向
+        if (error.code === 'auth/popup-blocked') {
+            console.log("彈出視窗被阻擋，嘗試使用重定向");
+            const auth = firebase.auth();
+            const provider = new firebase.auth.GoogleAuthProvider();
+            await auth.signInWithRedirect(provider);
+        } else {
+            await showCustomAlert("登入失敗：" + error.message, 'error');
+        }
     }
 }
 
