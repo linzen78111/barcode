@@ -19,8 +19,9 @@ function initializeAuth() {
                 provider.setCustomParameters({
                     prompt: 'select_account'
                 });
-                const result = await firebase.auth().signInWithPopup(provider);
-                console.log('登入成功:', result.user);
+                // 使用重定向方式登入，避免彈出視窗問題
+                await firebase.auth().signInWithRedirect(provider);
+                // 重定向後的結果會在頁面重新載入時處理
             } catch (error) {
                 console.error('登入失敗:', error);
                 alert(`登入失敗: ${error.message}`);
@@ -40,6 +41,16 @@ function initializeAuth() {
             }
         });
     }
+    
+    // 處理重定向登入結果
+    firebase.auth().getRedirectResult().then((result) => {
+        if (result.user) {
+            console.log('重定向登入成功:', result.user);
+        }
+    }).catch((error) => {
+        console.error('重定向登入處理失敗:', error);
+        // 這裡不再顯示錯誤提示，避免用戶看到錯誤訊息
+    });
 }
 
 // 監聽登入狀態

@@ -3,6 +3,7 @@
   "short_name": "條碼系統",
   "description": "條碼掃描和管理系統",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#4a90e2",
