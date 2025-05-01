@@ -6,65 +6,67 @@
     <title>離線 - 條碼系統</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
             background-color: #f5f5f5;
             color: #333;
             margin: 0;
             padding: 0;
             display: flex;
             flex-direction: column;
-            align-items: center;
             justify-content: center;
-            min-height: 100vh;
+            align-items: center;
+            height: 100vh;
             text-align: center;
         }
         .container {
-            max-width: 90%;
-            padding: 2rem;
             background-color: white;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            max-width: 90%;
+            width: 400px;
         }
         h1 {
-            color: #4285f4;
-            margin-bottom: 1rem;
+            color: #4285F4;
+            margin-top: 0;
         }
-        p {
-            margin: 1rem 0;
-            line-height: 1.5;
-        }
-        .icon {
+        .offline-icon {
             font-size: 4rem;
             margin-bottom: 1rem;
         }
-        .button {
-            background-color: #4285f4;
+        .message {
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+        .retry-button {
+            background-color: #4285F4;
             color: white;
             border: none;
-            padding: 0.75rem 1.5rem;
             border-radius: 4px;
-            font-weight: bold;
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
             cursor: pointer;
-            margin-top: 1rem;
-            transition: background-color 0.3s;
+            transition: background-color 0.2s;
         }
-        .button:hover {
+        .retry-button:hover {
             background-color: #3367d6;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="icon">🔌</div>
+        <div class="offline-icon">📶</div>
         <h1>您目前處於離線狀態</h1>
-        <p>似乎您的網路連線已中斷。部分功能可能無法正常運作。</p>
-        <p>您仍可以查看已緩存的資料並使用基本功能。</p>
-        <button class="button" onclick="window.location.reload()">重試連線</button>
+        <p class="message">
+            無法連接到網路。請檢查您的網路連接並重試。<br>
+            部分功能可能無法使用，但您仍可以存取之前瀏覽過的資料。
+        </p>
+        <button class="retry-button" onclick="window.location.reload()">重新連接</button>
     </div>
     <script>
-        // 監聽網路狀態變化
+        // 當網路恢復時自動重新加載頁面
         window.addEventListener('online', () => {
-            window.location.href = 'index.html';
+            window.location.reload();
         });
     </script>
 </body>

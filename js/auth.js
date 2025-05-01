@@ -1,8 +1,67 @@
 // 獲取 DOM 元素
 let loginPage, mainPage, googleLoginBtn, logoutBtn, userAvatar, userName;
 
+// 檢查是否在 PWA 模式下運行
+function isPwaMode() {
+    return window.matchMedia('(display-mode: standalone)').matches || 
+           window.navigator.standalone === true;
+}
+
+// 顯示主頁面
+function showMainPage(user) {
+    if (!user) return;
+    
+    console.log('顯示主頁面，使用者:', user.displayName);
+    
+    // 確保 DOM 元素已獲取
+    loginPage = loginPage || document.getElementById('loginPage');
+    mainPage = mainPage || document.getElementById('mainPage');
+    userAvatar = userAvatar || document.getElementById('userAvatar');
+    userName = userName || document.getElementById('userName');
+    
+    // 使用 classList.add/remove 前先檢查元素存在
+    if (loginPage) loginPage.classList.add('hidden');
+    if (mainPage) mainPage.classList.remove('hidden');
+    
+    // 更新使用者資訊
+    if (userAvatar) userAvatar.src = user.photoURL || 'assets/icon-192x192.png';
+    if (userName) {
+        userName.textContent = user.displayName || '使用者';
+    }
+    
+    // 檢查是否為官方帳號
+    checkIfOfficialAccount(user);
+    
+    // 初始化資料
+    if (typeof initializeData === 'function') {
+        try {
+            initializeData();
+        } catch (error) {
+            console.error('初始化資料失敗:', error);
+        }
+    }
+}
+
+// 檢查是否為官方帳號
+async function checkIfOfficialAccount(user) {
+    if (!userName) return;
+    
+    try {
+        if (typeof barcodeService !== 'undefined' && barcodeService) {
+            const isOfficial = await barcodeService.isOfficialAccount();
+            if (isOfficial) {
+                userName.innerHTML = `${user.displayName || '使用者'} <span class="official-badge">官方帳號</span>`;
+            }
+        }
+    } catch (error) {
+        console.error('檢查官方帳號失敗:', error);
+    }
+}
+
 // 初始化函數
 function initializeAuth() {
+    console.log('初始化認證系統...');
+    
     // 獲取 DOM 元素
     loginPage = document.getElementById('loginPage');
     mainPage = document.getElementById('mainPage');
@@ -11,283 +70,126 @@ function initializeAuth() {
     userAvatar = document.getElementById('userAvatar');
     userName = document.getElementById('userName');
     
-    // 檢查初始頁面狀態
-    checkInitialPageState();
+    // 檢查用戶是否已登入
+    const currentUser = firebase.auth().currentUser;
+    if (currentUser) {
+        console.log('用戶已登入，顯示主頁面');
+        showMainPage(currentUser);
+    }
 
-    // Google 登入
+    // 如果在 PWA 模式下，跳過瀏覽器模式的事件綁定
+    if (isPwaMode()) {
+        console.log('在 PWA 模式下，由 auth-pwa.js 處理認證');
+        return;
+    }
+
+    // 瀏覽器模式的 Google 登入
     if (googleLoginBtn) {
+        // 移除可能已附加的事件監聽器
+        const newGoogleLoginBtn = googleLoginBtn.cloneNode(true);
+        googleLoginBtn.parentNode.replaceChild(newGoogleLoginBtn, googleLoginBtn);
+        googleLoginBtn = newGoogleLoginBtn;
+        
         googleLoginBtn.addEventListener('click', async () => {
             try {
-                // 顯示載入中狀態
-                if (googleLoginBtn) {
-                    googleLoginBtn.disabled = true;
-                    googleLoginBtn.innerHTML = '<img src="assets/google-icon.svg" alt="Google Logo"> 正在登入...';
-                }
-                
                 const provider = new firebase.auth.GoogleAuthProvider();
                 provider.setCustomParameters({
                     prompt: 'select_account'
                 });
+                const result = await firebase.auth().signInWithPopup(provider);
+                console.log('登入成功:', result.user);
                 
-                // 不再檢測裝置類型，直接使用重定向方式登入
-                console.log('使用重定向方式登入');
-                // 儲存當前狀態，以便在重定向後恢復
-                sessionStorage.setItem('loginAttempt', 'true');
-                
-                // 顯示加載提示
-                const loadingMsg = document.createElement('div');
-                loadingMsg.id = 'login-loading-msg';
-                loadingMsg.style.position = 'fixed';
-                loadingMsg.style.top = '50%';
-                loadingMsg.style.left = '50%';
-                loadingMsg.style.transform = 'translate(-50%, -50%)';
-                loadingMsg.style.padding = '20px';
-                loadingMsg.style.background = 'rgba(0,0,0,0.7)';
-                loadingMsg.style.color = 'white';
-                loadingMsg.style.borderRadius = '10px';
-                loadingMsg.style.zIndex = '10000';
-                loadingMsg.textContent = '正在重定向至 Google 登入...';
-                document.body.appendChild(loadingMsg);
-                
-                // 使用 setTimeout 確保用戶能看到提示
-                setTimeout(async () => {
-                    try {
-                        await firebase.auth().signInWithRedirect(provider);
-                    } catch (error) {
-                        console.error('重定向登入失敗:', error);
-                        document.body.removeChild(loadingMsg);
-                        
-                        googleLoginBtn.disabled = false;
-                        googleLoginBtn.innerHTML = '<img src="assets/google-icon.svg" alt="Google Logo"> 使用 Google 帳號登入';
-                        
-                        if (typeof showCustomAlert === 'function') {
-                            showCustomAlert(`登入失敗: ${error.message}`, 'error');
-                        } else {
-                            alert(`登入失敗: ${error.message}`);
-                        }
-                    }
-                }, 500);
-                
+                // 確保登入後顯示主頁面
+                showMainPage(result.user);
             } catch (error) {
                 console.error('登入失敗:', error);
-                if (typeof showCustomAlert === 'function') {
-                    showCustomAlert(`登入失敗: ${error.message}`, 'error');
-                } else {
-                    alert(`登入失敗: ${error.message}`);
-                }
-                // 恢復按鈕狀態
-                if (googleLoginBtn) {
-                    googleLoginBtn.disabled = false;
-                    googleLoginBtn.innerHTML = '<img src="assets/google-icon.svg" alt="Google Logo"> 使用 Google 帳號登入';
-                }
+                alert(`登入失敗: ${error.message}`);
             }
         });
     }
 
     // 登出
     if (logoutBtn) {
+        // 移除可能已附加的事件監聽器
+        const newLogoutBtn = logoutBtn.cloneNode(true);
+        logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
+        logoutBtn = newLogoutBtn;
+        
         logoutBtn.addEventListener('click', async () => {
             try {
-                // 顯示載入中狀態
-                if (logoutBtn) {
-                    logoutBtn.disabled = true;
-                    logoutBtn.innerHTML = '<span class="icon">🚪</span> 正在登出...';
-                }
-                
                 await firebase.auth().signOut();
                 console.log('登出成功');
                 
-                // 清除本地緩存
-                localStorage.removeItem('lastActiveSession');
-                sessionStorage.clear();
+                // 確保登出後顯示登入頁面
+                if (loginPage) loginPage.classList.remove('hidden');
+                if (mainPage) mainPage.classList.add('hidden');
                 
-                if (typeof showCustomAlert === 'function') {
-                    showCustomAlert('已成功登出', 'success');
-                }
+                // 重載頁面以清除狀態
+                window.location.reload();
             } catch (error) {
                 console.error('登出失敗:', error);
-                if (typeof showCustomAlert === 'function') {
-                    showCustomAlert(`登出失敗: ${error.message}`, 'error');
-                } else {
-                    alert(`登出失敗: ${error.message}`);
-                }
-            } finally {
-                // 恢復按鈕狀態
-                if (logoutBtn) {
-                    logoutBtn.disabled = false;
-                    logoutBtn.innerHTML = '<span class="icon">🚪</span> 登出';
-                }
+                alert(`登出失敗: ${error.message}`);
             }
         });
     }
-    
-    // 確保 5 秒後檢查登入頁面顯示情況
-    setTimeout(() => {
-        checkInitialPageState();
-    }, 5000);
-    
-    // 檢查是否從重定向回來
-    checkRedirectResult();
 }
 
-// 確保頁面狀態正確
-function checkInitialPageState() {
-    // 檢查用戶是否已登入
-    const user = firebase.auth().currentUser;
-    console.log('檢查初始頁面狀態，當前用戶:', user);
+// 確保用戶狀態與 UI 一致
+function ensureAuthStateConsistency() {
+    const currentUser = firebase.auth().currentUser;
     
-    if (!loginPage || !mainPage) {
-        console.error('找不到必要的頁面元素');
-        return;
-    }
-    
-    if (user) {
-        // 用戶已登入，顯示主頁面
-        loginPage.classList.add('hidden');
-        mainPage.classList.remove('hidden');
-        console.log('用戶已登入，顯示主頁面');
+    if (currentUser) {
+        // 使用者已登入，但主頁面隱藏中
+        const loginPageHidden = loginPage && loginPage.classList.contains('hidden');
+        const mainPageVisible = mainPage && !mainPage.classList.contains('hidden');
+        
+        if (!loginPageHidden || !mainPageVisible) {
+            console.log('修正 UI：使用者已登入但介面不正確');
+            showMainPage(currentUser);
+        }
     } else {
-        // 用戶未登入，顯示登入頁面
-        loginPage.classList.remove('hidden');
-        mainPage.classList.add('hidden');
-        console.log('用戶未登入，顯示登入頁面');
-    }
-    
-    // 如果兩個頁面都被隱藏，顯示登入頁面
-    if (loginPage.classList.contains('hidden') && mainPage.classList.contains('hidden')) {
-        console.warn('檢測到兩個頁面都被隱藏，強制顯示登入頁面');
-        loginPage.classList.remove('hidden');
-    }
-}
-
-// 檢查從 Google 重定向回來的結果
-async function checkRedirectResult() {
-    try {
-        console.log('檢查重定向登入結果...');
-        // 取得重定向結果
-        const result = await firebase.auth().getRedirectResult();
-        if (result.user) {
-            console.log('重定向登入成功:', result.user);
-            
-            // 強制顯示主頁面，隱藏登入頁面
-            if (loginPage) loginPage.classList.add('hidden');
-            if (mainPage) mainPage.classList.remove('hidden');
-            
-            // 更新使用者資訊
-            if (userAvatar) userAvatar.src = result.user.photoURL || 'assets/default-avatar.png';
-            if (userName) {
-                userName.textContent = result.user.displayName || '使用者';
-            }
-            
-            // 手動觸發資料初始化
-            if (typeof initializeData === 'function') {
-                try {
-                    await initializeData();
-                    console.log('登入後資料初始化成功');
-                } catch (error) {
-                    console.error('登入後資料初始化失敗:', error);
-                }
-            }
-            
-            // 清除登入嘗試標記
-            sessionStorage.removeItem('loginAttempt');
-            
-            // 顯示成功提示
-            if (typeof showCustomAlert === 'function') {
-                showCustomAlert('登入成功', 'success');
-            }
-        } else {
-            console.log('無重定向登入結果或使用者未登入');
+        // 使用者未登入，但主頁面顯示中
+        const loginPageVisible = loginPage && !loginPage.classList.contains('hidden');
+        const mainPageHidden = mainPage && mainPage.classList.contains('hidden');
+        
+        if (!loginPageVisible || !mainPageHidden) {
+            console.log('修正 UI：使用者未登入但介面不正確');
+            if (loginPage) loginPage.classList.remove('hidden');
+            if (mainPage) mainPage.classList.add('hidden');
         }
-    } catch (error) {
-        console.error('處理重定向結果時發生錯誤:', error);
-        if (typeof showCustomAlert === 'function') {
-            showCustomAlert(`登入失敗: ${error.message}`, 'error');
-        } else {
-            alert(`登入失敗: ${error.message}`);
-        }
-        // 清除登入嘗試標記
-        sessionStorage.removeItem('loginAttempt');
     }
 }
 
 // 監聽登入狀態
-firebase.auth().onAuthStateChanged(async (user) => {
-    console.log('登入狀態改變:', user);
+firebase.auth().onAuthStateChanged(user => {
+    console.log('認證狀態變更:', user ? `已登入 (${user.displayName})` : '未登入');
     
-    // 如果是從重定向登入回來，則讓 checkRedirectResult 處理
-    if (sessionStorage.getItem('loginAttempt') === 'true') {
-        console.log('檢測到重定向登入嘗試，等待 checkRedirectResult 處理');
-        return;
-    }
-    
-    try {
-        if (user) {
-            // 使用者已登入
-            if (loginPage) loginPage.classList.add('hidden');
-            if (mainPage) mainPage.classList.remove('hidden');
-            
-            // 更新使用者資訊
-            if (userAvatar) userAvatar.src = user.photoURL || 'assets/default-avatar.png';
-            if (userName) {
-                userName.textContent = user.displayName || '使用者';
-                
-                // 檢查是否為官方帳號，先確認barcodeService是否存在
-                try {
-                    if (typeof barcodeService !== 'undefined' && barcodeService) {
-                        const isOfficial = await barcodeService.isOfficialAccount();
-                        if (isOfficial) {
-                            userName.innerHTML = `${user.displayName || '使用者'} <span class="official-badge">官方帳號</span>`;
-                        }
-                    }
-                } catch (error) {
-                    console.error('檢查官方帳號失敗:', error);
-                }
-            }
-            
-            // 記錄最後活躍會話時間
-            localStorage.setItem('lastActiveSession', new Date().toISOString());
-            
-            // 初始化資料（在 app.js 中定義）
-            if (typeof initializeData === 'function') {
-                try {
-                    await initializeData();
-                } catch (error) {
-                    console.error('初始化資料失敗:', error);
-                    if (typeof showCustomAlert === 'function') {
-                        showCustomAlert('資料載入失敗，請重新整理頁面', 'error');
-                    }
-                }
-            }
-        } else {
-            // 使用者未登入
-            if (loginPage) loginPage.classList.remove('hidden');
-            if (mainPage) mainPage.classList.add('hidden');
-            
-            // 清除會話狀態
-            localStorage.removeItem('lastActiveSession');
-        }
-    } catch (error) {
-        console.error('處理登入狀態改變時發生錯誤:', error);
-        // 確保頁面仍然可見
-        if (loginPage && mainPage) {
-            if (loginPage.classList.contains('hidden') && mainPage.classList.contains('hidden')) {
-                loginPage.classList.remove('hidden');
-            }
-        }
-    }
-});
-
-// 添加頁面錯誤處理
-window.addEventListener('unhandledrejection', (event) => {
-    console.error('未處理的 Promise 拒絕:', event.reason);
-    // 如果錯誤原因中包含 auth 相關字串，顯示錯誤提示
-    if (event.reason && event.reason.toString().includes('auth')) {
-        if (typeof showCustomAlert === 'function') {
-            showCustomAlert('認證錯誤，請重新登入', 'error');
-        }
+    if (user) {
+        // 使用者已登入
+        showMainPage(user);
+    } else {
+        // 使用者未登入
+        loginPage = loginPage || document.getElementById('loginPage');
+        mainPage = mainPage || document.getElementById('mainPage');
+        
+        if (loginPage) loginPage.classList.remove('hidden');
+        if (mainPage) mainPage.classList.add('hidden');
     }
 });
 
 // 在 DOM 載入完成後初始化
-document.addEventListener('DOMContentLoaded', initializeAuth); 
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM 載入完成，初始化認證系統');
+    initializeAuth();
+    
+    // 定期檢查 UI 狀態與認證狀態是否一致
+    setInterval(ensureAuthStateConsistency, 2000);
+});
+
+// 在頁面載入完成後也進行一次檢查
+window.addEventListener('load', () => {
+    console.log('頁面載入完成，檢查認證狀態');
+    setTimeout(() => {
+        ensureAuthStateConsistency();
+    }, 1000);
+}); 

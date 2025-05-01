@@ -1,23 +1,74 @@
 {
   "name": "條碼系統",
   "short_name": "條碼系統",
-  "description": "條碼掃描與管理應用",
-  "start_url": "./index.html",
+  "description": "條碼系統 - 掃描與管理條碼",
+  "start_url": "/?source=pwa",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#4285f4",
+  "theme_color": "#4285F4",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "assets/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "assets/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "scope": "/",
+  "id": "barcode-system",
+  "shortcuts": [
+    {
+      "name": "掃描條碼",
+      "short_name": "掃描",
+      "description": "開始掃描新條碼",
+      "url": "/?page=scan&source=pwa",
+      "icons": [{ "src": "assets/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "手動輸入",
+      "short_name": "手動輸入",
+      "description": "手動輸入條碼",
+      "url": "/?page=manual&source=pwa",
+      "icons": [{ "src": "assets/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "capture_links": "existing-client-navigate",
+  "categories": ["utilities", "productivity"],
+  "screenshots": [
+    {
+      "src": "assets/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "platform": "wide",
+      "label": "首頁畫面"
+    },
+    {
+      "src": "assets/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "手機畫面"
+    }
+  ],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  }
 } 

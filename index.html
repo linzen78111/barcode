@@ -4,16 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>條碼系統</title>
+    <!-- PWA 初始化檢測，必須最先加載 -->
+    <script src="js/pwa-init.js"></script>
     <link rel="stylesheet" href="css/style.css">
-    <!-- PWA 相關設置 -->
+    <!-- PWA 相關 -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#4285f4">
+    <meta name="theme-color" content="#4285F4">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="條碼系統">
     <link rel="apple-touch-icon" href="assets/icon-192x192.png">
+    <!-- iOS 啟動畫面 -->
+    <link rel="apple-touch-startup-image" href="assets/icon-512x512.png">
+    <!-- 各種 iOS 啟動畫面尺寸 -->
+    <link rel="apple-touch-startup-image" href="assets/icon-512x512.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)">
+    <link rel="apple-touch-startup-image" href="assets/icon-512x512.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)">
+    <link rel="apple-touch-startup-image" href="assets/icon-512x512.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)">
+    <link rel="apple-touch-startup-image" href="assets/icon-512x512.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)">
+    <link rel="apple-touch-startup-image" href="assets/icon-512x512.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)">
+    <link rel="apple-touch-startup-image" href="assets/icon-512x512.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)">
     <!-- Favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
+    <link rel="icon" href="assets/icon-192x192.png">
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -21,54 +32,11 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-analytics.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
-    <!-- PWA Service Worker 註冊 -->
-    <script>
-        // 檢查是否支援 Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                // 使用 try-catch 包裝 Service Worker 註冊
-                try {
-                    navigator.serviceWorker.register('/js/service-worker.js')
-                        .then(registration => {
-                            console.log('Service Worker 註冊成功，範圍:', registration.scope);
-                            
-                            // 監聽 Service Worker 更新
-                            registration.addEventListener('updatefound', () => {
-                                // 當發現新的 Service Worker 時
-                                const newWorker = registration.installing;
-                                console.log('發現新的 Service Worker 正在安裝');
-                                
-                                newWorker.addEventListener('statechange', () => {
-                                    console.log('Service Worker 狀態:', newWorker.state);
-                                    
-                                    // 當新的 Service Worker 激活時
-                                    if (newWorker.state === 'activated') {
-                                        console.log('新的 Service Worker 已啟用，可以刷新頁面使用');
-                                    }
-                                });
-                            });
-                        })
-                        .catch(error => {
-                            console.error('Service Worker 註冊失敗:', error);
-                        });
-                } catch (error) {
-                    console.error('Service Worker 註冊過程中發生錯誤:', error);
-                }
-                
-                // 確保頁面在 Service Worker 錯誤時仍能正常工作
-                window.addEventListener('error', (event) => {
-                    if (event.filename && event.filename.includes('service-worker')) {
-                        console.warn('捕獲到 Service Worker 相關錯誤，繼續加載頁面');
-                        event.preventDefault();
-                    }
-                });
-            });
-        } else {
-            console.warn('此瀏覽器不支援 Service Worker，離線功能將不可用');
-        }
-    </script>
 </head>
 <body>
+    <!-- PWA 狀態指示器 -->
+    <div id="pwa-status" style="display: none; position: fixed; top: 0; left: 0; right: 0; background: rgba(66, 133, 244, 0.8); color: white; font-size: 12px; padding: 4px 8px; z-index: 9999; text-align: center;">PWA 模式</div>
+
     <!-- 開發者公告 -->
     <div class="announcement-overlay" id="announcementOverlay"></div>
     <div id="developerAnnouncement" class="announcement-modal">
@@ -115,7 +83,7 @@
                 <!-- 側邊欄 -->
                 <aside class="sidebar">
                     <div class="user-info">
-                        <img id="userAvatar" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAABmJLR0QA/wD/AP+gvaeTAAAFWUlEQVR4nO2dW2gdRRjHf01qYhvT1jQ1llgVRaUqKGqLF7wgVkGsICjeBW96Qa0PXkAFwQcFQfBJEcUH9UXFNxVURBCl2IogqFRNa2ubxjQ2sfWSNI1tzPHhOyGbs2fP2Z2Z3T27+/3gkOzZ+Wbmn29nZ+abmTOQSCQSiUQikUgkEolEIpFIJBL5kAEuBQaD1yRxCrgN6AzejEQVHcBzwAywGLwmGQN2AGuCNyVRxRpgJ/A/lcKYBu4DVgVvUWKBVcD9wAxLhTED7ENGTiIiHMAIY4FKYUwDB0mTv6g4gBHGApXC+BG4JXiLEhVsBg5QLYxp4EWgO3iLElV0Ay9QLYxTwF6gK3iLElV0AXuQyb1aGO8C64O3KFHF+ZiRMUulME4CzwJrg7coUcU64DmqhTENvAVsCN6iRBXnAa8ho6FaGO8D5wRvUaKKjcDrVAtjGvgHuCJ4ixJVXA68R7UwpoHXgY3BW5SoYhPwJtXCmAaOAlcGb1Giiq3AEaqFMQ0cAq4K3qJEFdcAH1EtjGngMHBt8BYlqrgOOEa1MKaBT4Drg7coUcX1wKdUC2MaOAHcGLxFiSpuAj6nWhjTwL/AzcFblKhiO/Al1cKYBk4CdwRvUaKK24GvqBbGNPAVcGfwFiWquAv4hmphTAPfAXcHb1Giiu3A91QLYxr4AbgneIsSVdwL/Ei1MKaBn4D7grcoUcX9wM9UC2MaGAUeCN6iRBUPAmNUC2MaOA48FLxFiSp2AL9SLYxp4DfgkeAtSlTxKPA71cKYBv4EHg/eokQVTwB/US2MaeAv4MngLUpU8RTwLvaimALeRTakJiLwCPAe9qKYAt4Bbg3eokQVjwHvYy+KSeBt4LbgLUpUsRN7UUwCbwG3B29RooongA+xF8UE8CZwR/AWJarYhf0bzxPAG8CdwVuUqGI38An2ohgH9gN3BW9RooqngU+xF8U4MkruDt6iRBXPAJ9hL4px4HXSyUFReRb4HHtRjAGvAQ8Hb1Giit3AF9iL4l/gVdKJQVF5DvgSe1H8A7wCPBq8RYkq9gBfYS+Kv4GXgceCt8gjnchwtTkXtVlZi3x33kYUfyH7rB8P2hpPOpEZ/3HkqZ5EhvtxZLjPIvv5diB7/TaRf5/1KmSF9XLgQuQjk5cBlwCXIn+7kMsF+5AzX9YHqL8uepA7eRw5xHcM+QjkGHLAzgRyZ08g+/n+Qc5PnUL28GvvQtcNbEO+wH8VcAVwGbKefxnyd16KnKXbi9zNPuTfWXQjd7Yf+TdrgQ3I3d2M3O0h5P/Rj/yfNiF3vw/5f3Yj/+9u5HkxgDw/BpHnySDyvBlAnj8DyPNIzaOIxcgA8A1yR48hzx/1jAFvBK9JIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikcif/wFQaV3gXOJIjQAAAABJRU5ErkJggg==" alt="使用者頭像">
+                        <img id="userAvatar" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAABmJLR0QA/wD/AP+gvaeTAAAFWUlEQVR4nO2dW2gdRRjHf01qYhvT1jQ1llgVRaUqKGqLF7wgVkGsICjeBW96Qa0PXkAFwQcFQfBJEcUH9UXFNxVURBCl2IogqFRNa2ubxjQ2sfWSNI1tzPHhOyGbs2fP2Z2Z3T27+/3gkOzZ+Wbmn29nZ+abmTOQSCQSiUQikUgkEolEIpFIJBL5kAEuBQaD1yRxCrgN6AzejEQVHcBzwAywGLwmGQN2AGuCNyVRxRpgJ/A/lcKYBu4DVgVvUWKBVcD9wAxLhTED7ENGTiIiHMAIY4FKYUwDB0mTv6g4gBHGApXC+BG4JXiLEhVsBg5QLYxp4EWgO3iLElV0Ay9QLYxTwF6gK3iLElV0AXuQyb1aGO8C64O3KFHF+ZiRMUulME4CzwJrg7coUcU64DmqhTENvAVsCN6iRBXnAa8ho6FaGO8D5wRvUaKKjcDrVAtjGvgHuCJ4ixJVXA68R7UwpoHXgY3BW5SoYhPwJtXCmAaOAlcGb1Giiq3AEaqFMQ0cAq4K3qJEFdcAH1EtjGngMHBt8BYlqrgOOEa1MKaBT4Drg7coUcX1wKdUC2MaOAHcGLxFiSpuAj6nWhjTwL/AzcFblKhiO/Al1cKYBk4CdwRvUaKK24GvqBbGNPAVcGfwFiWquAv4hmphTAPfAXcHb1Giiu3A91QLYxr4AbgneIsSVdwL/Ei1MKaBn4D7grcoUcX9wM9UC2MaGAUeCN6iRBUPAmNUC2MaOA48FLxFiSp2AL9SLYxp4DfgkeAtSlTxKPA71cKYBv4EHg/eokQVTwB/US2MaeAv4MngLUpU8RTwLvaimALeRTakJiLwCPAe9qKYAt4Bbg3eokQVjwHvYy+KSeBt4LbgLUpUsRN7UUwCbwG3B29RooongA+xF8UE8CZwR/AWJarYhf0bzxPAG8CdwVuUqGI38An2ohgH9gN3BW9RooqngU+xF8U4MkruDt6iRBXPAJ9hL4px4HXSyUFReRb4HHtRjAGvAQ8Hb1Giit3AF9iL4l/gVdKJQVF5DvgSe1H8A7wCPBq8RYkq9gBfYS+Kv4GXgceCt8gjnchwtTkXtVlZi3x33kYUfyH7rB8P2hpPOpEZ/3HkqZ5EhvtxZLjPIvv5diB7/TaRf5/1KmSF9XLgQuQjk5cBlwCXIn+7kMsF+5AzX9YHqL8uepA7eRw5xHcM+QjkGHLAzgRyZ08hzx/1jAFvBK9JIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikcif/wFQaV3gXOJIjQAAAABJRU5ErkJggg==" alt="使用者頭像">
                         <span id="userName">使用者名稱</span>
                     </div>
                     <nav class="nav-menu">
@@ -338,6 +306,9 @@
     <script src="js/barcodeService.js"></script>
     <script src="js/app.js"></script>
     <script src="js/auth.js"></script>
+    <!-- PWA 增強 -->
+    <script src="js/auth-pwa.js"></script>
+    <script src="js/pwa-handler.js"></script>
     <!-- 修復腳本 -->
     <script src="js/fix-upload.js"></script>
 

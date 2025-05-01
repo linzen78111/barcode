@@ -519,9 +519,12 @@ document.addEventListener('DOMContentLoaded', function() {
   
   observer.observe(document.body, { childList: true, subtree: true });
   
-  // 專用於顯示無資料警告的函數
+  // 專用於顯示無資料警告的函數 - 完全重寫以確保不會切換頁面
   function showNoDataAlert() {
-    // 檢查是否已存在警告對話框
+    // 標記開始執行 - 防止重複執行
+    console.log('開始執行 showNoDataAlert (新版) - ' + new Date().toISOString());
+    
+    // 移除任何已存在的對話框
     const existingDialogs = document.querySelectorAll('.browser-dialog, .browser-dialog-overlay');
     existingDialogs.forEach(dialog => dialog.remove());
     
@@ -529,6 +532,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const dialog = document.createElement('div');
     dialog.className = 'browser-dialog';
     dialog.setAttribute('data-type', 'error');
+    dialog.setAttribute('data-version', '2.0'); // 添加版本標記以確保新代碼運行
     
     dialog.innerHTML = `
       <div class="browser-dialog-content">
@@ -553,63 +557,31 @@ document.addEventListener('DOMContentLoaded', function() {
       dialog.classList.add('active');
     });
     
-    // 關閉對話框的函數
+    // 簡化的關閉對話框函數 - 不做任何頁面切換
     const closeDialog = () => {
+      console.log('關閉無資料警告對話框 - 不做頁面切換');
+      
+      // 移除動畫類
       dialog.classList.remove('active');
       overlay.classList.remove('active');
+      
+      // 延遲移除元素
       setTimeout(() => {
         dialog.remove();
         overlay.remove();
-        
-        // 確保所有頁面都隱藏，再顯示主頁面
-        document.querySelectorAll('.page').forEach(p => {
-          p.classList.add('hidden');
-          p.style.display = 'none';
-        });
-        
-        const mainPage = document.getElementById('mainPage');
-        if (mainPage) {
-          mainPage.classList.remove('hidden');
-          mainPage.style.display = 'block';
-        }
-        
-        // 確保主內容區域可見
-        const mainContent = document.querySelector('.main-content');
-        if (mainContent) {
-          mainContent.style.display = 'block';
-        }
-        
-        // 顯示頂部搜尋區域
-        const contentHeader = document.querySelector('.content-header');
-        if (contentHeader) {
-          contentHeader.style.display = 'flex';
-        }
-        
-        // 顯示條碼列表區域
-        const barcodeList = document.getElementById('barcodeList');
-        if (barcodeList) {
-          barcodeList.style.display = 'block';
-        }
-        
-        // 確保側邊欄導航項目正確激活
-        const navItems = document.querySelectorAll('.nav-item');
-        navItems.forEach(nav => nav.classList.remove('active'));
-        const officialNavItem = document.querySelector('[data-page="official"]');
-        if (officialNavItem) {
-          officialNavItem.classList.add('active');
-        }
-        
-        // 嘗試重新載入資料
-        if (window.loadBarcodes) {
-          window.loadBarcodes().catch(e => console.error("重新載入資料失敗:", e));
-        }
+        console.log('已完全移除對話框元素');
       }, 300);
     };
     
     // 點擊確定按鈕關閉
     const confirmBtn = dialog.querySelector('#alertConfirmBtn');
     if (confirmBtn) {
-      confirmBtn.onclick = closeDialog;
+      confirmBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeDialog();
+        return false;
+      };
     }
     
     // ESC 鍵關閉
