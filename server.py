@@ -42,9 +42,28 @@ class ImageUploadHandler(SimpleHTTPRequestHandler):
     def guess_type(self, path):
         """重寫 MIME 類型猜測方法"""
         base, ext = os.path.splitext(path)
-        if ext == '.js':
-            return 'application/javascript'
-        return super().guess_type(path)
+        mime_types = {
+            '.js': 'application/javascript',
+            '.json': 'application/json',
+            '.css': 'text/css',
+            '.html': 'text/html',
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.gif': 'image/gif',
+            '.svg': 'image/svg+xml',
+            '.ico': 'image/x-icon',
+            '.woff': 'font/woff',
+            '.woff2': 'font/woff2',
+            '.ttf': 'font/ttf',
+            '.eot': 'application/vnd.ms-fontobject',
+            '.wav': 'audio/wav',
+            '.mp3': 'audio/mpeg',
+            '.mp4': 'video/mp4',
+            '.webm': 'video/webm',
+            '.webp': 'image/webp'
+        }
+        return mime_types.get(ext.lower(), super().guess_type(path))
 
     def translate_path(self, path):
         """重寫路徑轉換方法"""
@@ -63,10 +82,21 @@ class ImageUploadHandler(SimpleHTTPRequestHandler):
         # 返回相對於當前目錄的完整路徑
         return os.path.join(os.getcwd(), path)
 
+    def end_headers(self):
+        """添加 CORS 和快取控制標頭"""
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+        self.send_header('Pragma', 'no-cache')
+        self.send_header('Expires', '0')
+        super().end_headers()
+
 def run(server_class=HTTPServer, handler_class=ImageUploadHandler, port=8000):
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
     print(f'啟動伺服器在 port {port}...')
+    print(f'請在瀏覽器中訪問 http://localhost:{port}')
     httpd.serve_forever()
 
 if __name__ == '__main__':
