@@ -5,6 +5,20 @@
 window.isPwaMode = false;
 window.pwaStartTime = Date.now();
 
+// 添加 PWA 環境檢測標記
+(function() {
+    // 檢測是否在 GitHub Pages 上
+    const isGitHubPages = window.location.hostname.includes('github.io');
+    
+    // 記錄在 localStorage 中，以便其他腳本使用
+    if (isGitHubPages) {
+        localStorage.setItem('is_github_pages', 'true');
+        console.log('檢測到 GitHub Pages 環境，設置特別處理邏輯');
+    } else {
+        localStorage.removeItem('is_github_pages');
+    }
+})();
+
 // 檢測應用程式是否在 PWA 模式下運行
 function detectPwaMode() {
     // 檢查顯示模式

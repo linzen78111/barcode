@@ -1,5 +1,5 @@
 // 版本號，當資源更新時需要更改此版本號
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = `barcode-system-${CACHE_VERSION}`;
 
 // 需要快取的資源列表
@@ -122,18 +122,18 @@ self.addEventListener('fetch', event => {
   // 跳過不支援的請求
   if (!event.request.url.startsWith('http')) return;
   
+  // 特殊處理 about:blank 相關請求，這可能是 Firebase 認證彈窗引起的
+  if (event.request.url.includes('about:blank') || event.request.url.includes('blank')) {
+    console.log('[Service Worker] 處理 about:blank 相關請求，不進行攔截');
+    return;
+  }
+  
   // 處理 Google 登入和 Firebase 相關請求，這些應該直接使用網絡
   if (shouldExcludeFromCache(event.request.url)) {
     // 認證相關請求直接走網絡，不做任何快取
     if (isAuthRequest(event.request.url)) {
       console.log('[Service Worker] 認證請求，直接使用網絡:', event.request.url);
-      event.respondWith(fetch(event.request).catch(error => {
-        console.error('[Service Worker] 認證請求失敗:', error);
-        return new Response(JSON.stringify({ error: 'Network error during authentication' }), { 
-          status: 408, 
-          headers: new Headers({ 'Content-Type': 'application/json' }) 
-        });
-      }));
+      // 認證請求不做任何攔截，直接放行
       return;
     }
     

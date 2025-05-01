@@ -93,66 +93,70 @@ async function handlePwaGoogleLogin(event) {
             prompt: 'select_account'
         });
         
+        // 檢測是否在 GitHub Pages 上
+        const isGitHubPages = window.location.hostname.includes('github.io');
+        console.log('是否在 GitHub Pages 環境：', isGitHubPages);
+        
         // 檢測裝置類型
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         
         // 保存當前 URL 以便登入後返回
-        localStorage.setItem('auth_return_url', window.location.href);
+        const currentUrl = window.location.href;
+        localStorage.setItem('auth_return_url', currentUrl);
         localStorage.setItem('auth_pending', 'true');
         localStorage.setItem('auth_pending_time', Date.now().toString());
         
-        if (isIOS) {
-            // iOS 裝置始終使用重定向方式
-            console.log('使用 iOS 專用的重定向登入');
-            // 在重定向前顯示載入狀態
+        // 在 GitHub Pages 上總是使用重定向方式
+        if (isGitHubPages || isIOS) {
+            console.log('使用重定向登入方式 (GitHub Pages 或 iOS)');
             displayLoadingState();
             
             try {
-                // 確保重定向包含 PWA 標記
+                // 嘗試使用重定向
+                provider.setCustomParameters({
+                    prompt: 'select_account',
+                    // 將當前 URL 作為重定向目標
+                    redirect_uri: currentUrl
+                });
+                
                 await auth.signInWithRedirect(provider);
+                console.log('重定向登入已啟動');
             } catch (redirectError) {
                 console.error('重定向登入失敗:', redirectError);
-                // 如果重定向失敗，嘗試回退到彈窗登入
-                try {
-                    const result = await auth.signInWithPopup(provider);
-                    processSuccessfulLogin(result.user);
-                } catch (popupError) {
-                    console.error('彈窗登入也失敗:', popupError);
-                    throw popupError;
-                }
+                hideLoadingState();
+                
+                // 顯示友好錯誤訊息
+                alert('登入過程中斷。請確保您允許彈窗並再試一次。');
+                loginInProgress = false;
             }
         } else {
-            // 非 iOS 設備先嘗試彈窗登入
+            // 非 GitHub Pages/iOS 環境使用常規方式
             try {
-                // 嘗試使用彈窗登入前，清除任何可能存在的彈窗
                 console.log('嘗試使用彈窗登入');
                 const result = await auth.signInWithPopup(provider);
                 processSuccessfulLogin(result.user);
             } catch (popupError) {
                 console.warn('彈窗登入失敗，降級為重定向方式:', popupError);
                 
-                // 確認是否因為已有其他彈窗導致失敗
                 if (popupError.code === 'auth/cancelled-popup-request' || 
                     popupError.message.includes('conflicting popup')) {
-                    console.log('檢測到彈窗衝突，清理後重試');
-                    
-                    // 顯示載入狀態，但不再嘗試彈窗
+                    console.log('檢測到彈窗衝突，使用重定向方式');
                     displayLoadingState();
                     
-                    // 直接使用重定向
                     try {
                         await auth.signInWithRedirect(provider);
                     } catch (error) {
-                        console.error('重定向登入也失敗:', error);
+                        hideLoadingState();
+                        console.error('重定向登入失敗:', error);
                         throw error;
                     }
                 } else {
-                    // 其他錯誤，也使用重定向
                     displayLoadingState();
                     try {
                         await auth.signInWithRedirect(provider);
                     } catch (error) {
-                        console.error('重定向登入也失敗:', error);
+                        hideLoadingState();
+                        console.error('重定向登入失敗:', error);
                         throw error;
                     }
                 }
