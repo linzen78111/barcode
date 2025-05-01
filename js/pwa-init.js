@@ -459,4 +459,64 @@ function addCacheClearingButton() {
 window.addEventListener('load', () => {
     // 延遲添加，確保其他元素已加載
     setTimeout(addCacheClearingButton, 1000);
+});
+
+// 在頁面載入時檢查是否有登入回調
+window.addEventListener('load', () => {
+    console.log('檢查是否有認證回調參數');
+    
+    // 獲取 URL 參數
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // 如果有認證成功標記，清理 URL 並觸發自定義事件
+    if (urlParams.has('auth_success') || urlParams.has('github_auth_callback')) {
+        console.log('檢測到認證回調參數，處理登入後流程');
+        
+        // 清除 URL 中的參數以防止循環
+        try {
+            const baseUrl = window.location.pathname;
+            history.replaceState(null, document.title, baseUrl);
+            console.log('已清理 URL 參數');
+        } catch (e) {
+            console.error('清理 URL 參數失敗:', e);
+        }
+        
+        // 觸發認證檢查
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            console.log('觸發認證檢查');
+            
+            // 等待 Firebase 初始化完成
+            setTimeout(() => {
+                const user = firebase.auth().currentUser;
+                if (user) {
+                    console.log('用戶已登入:', user.displayName);
+                    
+                    // 觸發自定義事件
+                    try {
+                        window.dispatchEvent(new CustomEvent('pwa-login-success', {
+                            detail: { user: user }
+                        }));
+                    } catch (e) {
+                        console.error('觸發登入成功事件失敗:', e);
+                        
+                        // 退路方案 - 直接顯示主頁面
+                        if (typeof directlyShowMainPage === 'function') {
+                            directlyShowMainPage(user);
+                        } else if (typeof showMainPage === 'function') {
+                            showMainPage(user);
+                        } else if (typeof forceShowMainPage === 'function') {
+                            forceShowMainPage(user);
+                        }
+                    }
+                } else {
+                    console.log('用戶未登入，可能需要再次嘗試登入');
+                    
+                    // 嘗試檢查重定向結果
+                    if (typeof checkRedirectResult === 'function') {
+                        checkRedirectResult();
+                    }
+                }
+            }, 1000);
+        }
+    }
 }); 

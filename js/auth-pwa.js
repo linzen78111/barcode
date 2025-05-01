@@ -79,7 +79,45 @@ function removeAllEventListeners() {
     }
 }
 
-// PWA 環境下的 Google 登入處理 - 徹底重寫此函數
+// 新增：直接建立並打開重定向 URL
+function directGoogleAuthRedirect() {
+    // 檢查是否在 iOS 上
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    
+    if (isIOS) {
+        console.log('iOS 設備檢測到：使用外部瀏覽器重定向');
+        
+        // 構建基本 URL
+        const baseUrl = window.location.origin + window.location.pathname;
+        // 構建回調 URL
+        const redirectUri = baseUrl + '?auth_success=true&source=pwa&time=' + Date.now();
+        // 儲存回調信息
+        localStorage.setItem('auth_pending', 'true');
+        localStorage.setItem('auth_pending_time', Date.now().toString());
+        localStorage.setItem('auth_redirect_url', redirectUri);
+        
+        // 構建 Firebase Auth 重定向 URL
+        const projectId = 'barcode-system-4a6c9';
+        const apiKey = firebase.app().options.apiKey;
+        const authDomain = firebase.app().options.authDomain;
+        
+        // 直接建立 Google OAuth URL
+        const authUrl = `https://accounts.google.com/o/oauth2/auth?` +
+            `client_id=${projectId}.apps.googleusercontent.com` +
+            `&redirect_uri=https://${authDomain}/__/auth/handler` +
+            `&response_type=code` +
+            `&scope=email%20profile` +
+            `&state=${encodeURIComponent(redirectUri)}`;
+        
+        // 在當前窗口打開授權 URL
+        window.location.href = authUrl;
+        return true;
+    }
+    
+    return false;
+}
+
+// 修改 PWA 環境下的 Google 登入處理函數
 async function handlePwaGoogleLogin(event) {
     // 阻止原始事件
     event.preventDefault();
@@ -95,6 +133,20 @@ async function handlePwaGoogleLogin(event) {
     loginInProgress = true;
     
     console.log('使用 PWA 特定的 Google 登入流程');
+    
+    // 檢查 iOS 設備上是否強制使用特殊方法
+    if (localStorage.getItem('force_redirect_auth') === 'true') {
+        try {
+            console.log('檢測到強制重定向設置');
+            if (directGoogleAuthRedirect()) {
+                console.log('已啟動外部瀏覽器重定向登入');
+                return;
+            }
+        } catch (error) {
+            console.error('特殊重定向方法失敗:', error);
+            // 繼續使用標準方法
+        }
+    }
     
     try {
         // 獲取當前 URL 以用於後續使用
