@@ -2,7 +2,7 @@
   "name": "條碼系統",
   "short_name": "條碼系統",
   "description": "條碼掃描與管理應用",
-  "start_url": "index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#4285f4",

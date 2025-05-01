@@ -2311,6 +2311,40 @@ window.addEventListener('offline', () => {
     showCustomAlert('網絡已斷開連接，已切換到離線模式', 'warning');
 });
 
+// 處理 Service Worker 錯誤
+window.addEventListener('error', (event) => {
+    console.error('捕獲到全局錯誤:', event.error);
+    // 如果錯誤與 Service Worker 相關，不阻止頁面渲染
+    if (event.filename && event.filename.includes('service-worker.js')) {
+        console.warn('Service Worker 錯誤被捕獲，繼續加載頁面');
+        event.preventDefault();
+    }
+});
+
+// 處理未處理的 Promise 拒絕
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('未處理的 Promise 拒絕:', event.reason);
+    // 如果錯誤與 Service Worker 相關，不阻止頁面渲染
+    if (event.reason && event.reason.toString().includes('service-worker')) {
+        console.warn('Service Worker 相關的 Promise 拒絕被捕獲');
+        event.preventDefault();
+    }
+});
+
+// 確保在發生錯誤時也能顯示登入頁面
+window.addEventListener('load', () => {
+    // 如果 5 秒後頁面還是空白，嘗試強制顯示登入頁面
+    setTimeout(() => {
+        const loginPage = document.getElementById('loginPage');
+        const mainPage = document.getElementById('mainPage');
+        if (loginPage && loginPage.classList.contains('hidden') && 
+            mainPage && mainPage.classList.contains('hidden')) {
+            console.warn('頁面似乎未正確加載，嘗試顯示登入頁面');
+            loginPage.classList.remove('hidden');
+        }
+    }, 5000);
+});
+
 // 初始檢查網絡狀態
 document.addEventListener('DOMContentLoaded', () => {
     checkNetworkStatus();

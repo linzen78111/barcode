@@ -1,18 +1,18 @@
 const CACHE_NAME = 'barcode-app-v1';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/offline.html',
-  '/css/style.css',
-  '/js/app.js',
-  '/js/auth.js',
-  '/js/barcodeService.js',
-  '/js/config.js',
-  '/js/custom-confirm.js',
-  '/js/local-manager.js',
-  '/assets/google-icon.svg',
-  '/assets/icon-192x192.png',
-  '/assets/icon-512x512.png'
+  './',
+  './index.html',
+  './offline.html',
+  './css/style.css',
+  './js/app.js',
+  './js/auth.js',
+  './js/barcodeService.js',
+  './js/config.js',
+  './js/custom-confirm.js',
+  './js/local-manager.js',
+  './assets/google-icon.svg',
+  './assets/icon-192x192.png',
+  './assets/icon-512x512.png'
 ];
 
 // 安裝 Service Worker
@@ -84,7 +84,7 @@ self.addEventListener('fetch', event => {
           .catch(error => {
             console.log('Fetch 失敗:', error);
             // 如果網絡請求失敗，顯示離線頁面
-            return caches.match('/offline.html');
+            return caches.match('./offline.html');
           });
       })
   );
