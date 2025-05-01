@@ -19,7 +19,7 @@ function initializeAuth() {
                 provider.setCustomParameters({
                     prompt: 'select_account'
                 });
-                const result = await firebase.auth().signInWithPopup(provider);
+                const result = await firebase.auth().signInWithRedirect(provider);
                 console.log('登入成功:', result.user);
             } catch (error) {
                 console.error('登入失敗:', error);

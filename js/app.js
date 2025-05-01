@@ -1798,23 +1798,10 @@ async function googleLogin() {
 
         const auth = firebase.auth();
         await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-        
-        const result = await auth.signInWithPopup(provider);
-        if (result.user) {
-            console.log("登入成功");
-            await handleLoginSuccess(result.user);
-        }
+        await auth.signInWithRedirect(provider);
     } catch (error) {
         console.error("登入錯誤:", error);
-        // 如果彈出視窗被阻擋，嘗試使用重定向
-        if (error.code === 'auth/popup-blocked') {
-            console.log("彈出視窗被阻擋，嘗試使用重定向");
-            const auth = firebase.auth();
-            const provider = new firebase.auth.GoogleAuthProvider();
-            await auth.signInWithRedirect(provider);
-        } else {
-            await showCustomAlert("登入失敗：" + error.message, 'error');
-        }
+        await showCustomAlert("登入失敗：" + error.message, 'error');
     }
 }
 
