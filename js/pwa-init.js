@@ -359,4 +359,104 @@ document.addEventListener('visibilitychange', () => {
             }
         }
     }
+});
+
+// 添加 PWA 緩存清理功能
+function addCacheClearingButton() {
+    if (!window.isPwaMode) return;
+    
+    const clearCacheButton = document.createElement('button');
+    clearCacheButton.id = 'pwa-clear-cache';
+    clearCacheButton.textContent = '清除 PWA 緩存';
+    clearCacheButton.style.cssText = `
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        z-index: 10001;
+        padding: 5px 10px;
+        background: rgba(255, 0, 0, 0.7);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 12px;
+        display: none;
+    `;
+    
+    clearCacheButton.addEventListener('click', async () => {
+        try {
+            console.log('正在清除 PWA 緩存...');
+            clearCacheButton.textContent = '正在清除...';
+            clearCacheButton.disabled = true;
+            
+            // 1. 清除所有 caches
+            const cacheKeys = await caches.keys();
+            await Promise.all(cacheKeys.map(key => caches.delete(key)));
+            
+            // 2. 註銷並重新註冊 Service Worker
+            if (navigator.serviceWorker) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(registrations.map(reg => reg.unregister()));
+            }
+            
+            // 3. 清除 localStorage 中的 PWA 相關數據
+            localStorage.removeItem('auth_pending');
+            localStorage.removeItem('auth_pending_time');
+            localStorage.removeItem('pwaPromptDisabled');
+            localStorage.removeItem('pwaPromptShown');
+            localStorage.removeItem('lastPwaPrompt');
+            localStorage.removeItem('pwaInstalled');
+            
+            // 4. 顯示成功消息
+            clearCacheButton.textContent = '緩存已清除，重新載入中...';
+            
+            // 5. 重新載入頁面
+            setTimeout(() => {
+                window.location.href = '/?pwa-cache-cleared=true';
+            }, 1000);
+        } catch (error) {
+            console.error('清除緩存失敗:', error);
+            clearCacheButton.textContent = '清除失敗，請重試';
+            clearCacheButton.disabled = false;
+        }
+    });
+    
+    document.body.appendChild(clearCacheButton);
+    
+    // 添加隱藏的手勢：在螢幕上連續點擊 5 次顯示按鈕
+    let tapCount = 0;
+    let lastTap = 0;
+    
+    document.addEventListener('click', (e) => {
+        const currentTime = new Date().getTime();
+        const tapTime = currentTime - lastTap;
+        lastTap = currentTime;
+        
+        if (tapTime < 500) {
+            tapCount++;
+            if (tapCount >= 5) {
+                clearCacheButton.style.display = 'block';
+                tapCount = 0;
+            }
+        } else {
+            tapCount = 1;
+        }
+    });
+    
+    // 或者使用組合鍵：Shift + Ctrl + C
+    document.addEventListener('keydown', (e) => {
+        if (e.shiftKey && e.ctrlKey && e.key.toLowerCase() === 'c') {
+            clearCacheButton.style.display = clearCacheButton.style.display === 'none' ? 'block' : 'none';
+        }
+    });
+    
+    // 檢查 URL 參數，如果存在 pwa-debug，直接顯示按鈕
+    if (urlParams.has('pwa-debug')) {
+        clearCacheButton.style.display = 'block';
+    }
+}
+
+// 在網頁載入完成後添加清除緩存按鈕
+window.addEventListener('load', () => {
+    // 延遲添加，確保其他元素已加載
+    setTimeout(addCacheClearingButton, 1000);
 }); 

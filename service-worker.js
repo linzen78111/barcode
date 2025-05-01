@@ -1,31 +1,31 @@
 // 版本號，當資源更新時需要更改此版本號
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = `barcode-system-${CACHE_VERSION}`;
 
 // 需要快取的資源列表
 const CACHE_URLS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/css/style.css',
-  '/js/app.js',
-  '/js/auth.js',
-  '/js/auth-pwa.js',
-  '/js/pwa-init.js',
-  '/js/pwa-handler.js',
-  '/js/barcodeService.js',
-  '/js/config.js',
-  '/js/custom-confirm.js',
-  '/js/local-manager.js',
-  '/offline.html',
+  './',
+  './index.html',
+  './manifest.json',
+  './css/style.css',
+  './js/app.js',
+  './js/auth.js',
+  './js/auth-pwa.js',
+  './js/pwa-init.js',
+  './js/pwa-handler.js',
+  './js/barcodeService.js',
+  './js/config.js',
+  './js/custom-confirm.js',
+  './js/local-manager.js',
+  './offline.html',
   // 圖示
-  '/assets/icon-192x192.png',
-  '/assets/icon-512x512.png',
-  '/assets/google-icon.svg',
+  './assets/icon-192x192.png',
+  './assets/icon-512x512.png',
+  './assets/google-icon.svg',
   // 音效
-  '/SystemMessage_warning1.wav',
-  '/SystemMessage_warning2.wav',
-  '/ERROR.WAV',
+  './SystemMessage_warning1.wav',
+  './SystemMessage_warning2.wav',
+  './ERROR.WAV',
   // 第三方資源
   'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
   'https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js',
@@ -185,12 +185,12 @@ self.addEventListener('fetch', event => {
             // 如果獲取失敗且請求的是圖片，則返回預設圖片
             if (event.request.url.match(/\.(jpg|jpeg|png|gif|bmp|svg)$/i) || 
                 (acceptHeader && acceptHeader.includes('image/'))) {
-              return caches.match('/assets/icon-192x192.png');
+              return caches.match('./assets/icon-192x192.png');
             }
             
             // 對於 HTML 文件，返回離線頁面
             if (acceptHeader && acceptHeader.includes('text/html')) {
-              return caches.match('/offline.html');
+              return caches.match('./offline.html');
             }
             
             // 對於其他類型的資源，返回一個錯誤響應
@@ -210,8 +210,8 @@ self.addEventListener('push', event => {
   const title = '條碼系統';
   const options = {
     body: event.data ? event.data.text() : '有新通知',
-    icon: '/assets/icon-192x192.png',
-    badge: '/assets/icon-192x192.png',
+    icon: './assets/icon-192x192.png',
+    badge: './assets/icon-192x192.png',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
@@ -239,7 +239,7 @@ self.addEventListener('notificationclick', event => {
   }
   
   event.waitUntil(
-    clients.openWindow('/?source=pwa')
+    clients.openWindow('./?source=pwa')
       .then(windowClient => windowClient ? windowClient.focus() : null)
   );
 });
