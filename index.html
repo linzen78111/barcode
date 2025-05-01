@@ -32,8 +32,46 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-analytics.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        /* 基本樣式 */
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            background-color: #f9f9f9;
+            overflow: hidden;
+        }
+        
+        /* 登入按鈕點擊效果 */
+        .btn-google {
+            transition: all 0.3s;
+        }
+        
+        .btn-google:active, .btn-google.button-clicked {
+            background-color: #e0e0e0 !important;
+            transform: scale(0.95);
+        }
+        
+        /* 確保登入按鈕在 PWA 模式下更容易點擊 */
+        @media (display-mode: standalone), (display-mode: fullscreen) {
+            .btn-google {
+                padding: 16px !important;
+                margin: 20px auto !important;
+                min-height: 50px !important;
+                cursor: pointer !important;
+                -webkit-tap-highlight-color: rgba(0,0,0,0.2) !important;
+            }
+        }
+    </style>
 </head>
 <body>
+    <!-- 添加調試區域 -->
+    <div id="debug-panel" style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); color: white; font-size: 10px; max-height: 150px; overflow-y: auto; z-index: 10000; padding: 5px;">
+        <div>調試面板</div>
+        <div id="debug-log"></div>
+    </div>
+
     <!-- PWA 狀態指示器 -->
     <div id="pwa-status" style="display: none; position: fixed; top: 0; left: 0; right: 0; background: rgba(66, 133, 244, 0.8); color: white; font-size: 12px; padding: 4px 8px; z-index: 9999; text-align: center;">PWA 模式</div>
 
@@ -297,6 +335,98 @@
             </div>
         </div>
     </div>
+
+    <!-- 添加調試按鈕（正式環境可以移除） -->
+    <script>
+    // 添加調試功能
+    document.addEventListener('DOMContentLoaded', function() {
+        // 創建調試按鈕
+        const debugBtn = document.createElement('button');
+        debugBtn.textContent = 'DEBUG';
+        debugBtn.style.cssText = 'position: fixed; bottom: 10px; left: 10px; z-index: 10001; background: red; color: white; border: none; padding: 5px; border-radius: 5px; font-size: 10px; opacity: 0.5;';
+        document.body.appendChild(debugBtn);
+        
+        // 調試面板
+        const debugPanel = document.getElementById('debug-panel');
+        const debugLog = document.getElementById('debug-log');
+        
+        // 點擊按鈕顯示/隱藏調試面板
+        debugBtn.addEventListener('click', function() {
+            debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
+        });
+        
+        // 捕獲 console.log 和 errors
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+        
+        console.log = function() {
+            const args = Array.from(arguments);
+            originalConsoleLog.apply(console, args);
+            
+            const logItem = document.createElement('div');
+            logItem.textContent = '[LOG] ' + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
+            if (debugLog) debugLog.appendChild(logItem);
+            
+            // 限制日誌數量
+            while (debugLog && debugLog.childNodes.length > 100) {
+                debugLog.removeChild(debugLog.firstChild);
+            }
+            
+            // 滾動到底部
+            if (debugPanel) debugPanel.scrollTop = debugPanel.scrollHeight;
+        };
+        
+        console.error = function() {
+            const args = Array.from(arguments);
+            originalConsoleError.apply(console, args);
+            
+            const logItem = document.createElement('div');
+            logItem.textContent = '[ERROR] ' + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
+            logItem.style.color = 'red';
+            if (debugLog) debugLog.appendChild(logItem);
+            
+            if (debugPanel) debugPanel.scrollTop = debugPanel.scrollHeight;
+        };
+        
+        console.warn = function() {
+            const args = Array.from(arguments);
+            originalConsoleWarn.apply(console, args);
+            
+            const logItem = document.createElement('div');
+            logItem.textContent = '[WARN] ' + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
+            logItem.style.color = 'orange';
+            if (debugLog) debugLog.appendChild(logItem);
+            
+            if (debugPanel) debugPanel.scrollTop = debugPanel.scrollHeight;
+        };
+        
+        // 捕獲全局錯誤
+        window.addEventListener('error', function(event) {
+            console.error('Global error:', event.message, 'at', event.filename, 'line', event.lineno);
+        });
+        
+        // 捕獲未處理的 Promise 錯誤
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled promise rejection:', event.reason);
+        });
+        
+        // 檢測 PWA 狀態
+        const pwaStatus = document.getElementById('pwa-status');
+        const isPwa = window.matchMedia('(display-mode: standalone)').matches || 
+                    window.navigator.standalone === true || 
+                    window.location.search.includes('source=pwa');
+                    
+        if (isPwa && pwaStatus) {
+            pwaStatus.style.display = 'block';
+        }
+        
+        // 顯示設備信息
+        console.log('User Agent:', navigator.userAgent);
+        console.log('PWA Mode:', isPwa);
+        console.log('GitHub Pages:', window.location.hostname.includes('github.io'));
+    });
+    </script>
 
     <!-- 先載入配置 -->
     <script src="js/config.js"></script>

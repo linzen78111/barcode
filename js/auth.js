@@ -85,17 +85,26 @@ function initializeAuth() {
 
     // 瀏覽器模式的 Google 登入
     if (googleLoginBtn) {
-        // 移除可能已附加的事件監聽器
+        // 確保先清除可能存在的所有點擊事件
         const newGoogleLoginBtn = googleLoginBtn.cloneNode(true);
         googleLoginBtn.parentNode.replaceChild(newGoogleLoginBtn, googleLoginBtn);
         googleLoginBtn = newGoogleLoginBtn;
         
-        googleLoginBtn.addEventListener('click', async () => {
+        console.log('為瀏覽器模式綁定 Google 登入事件');
+        googleLoginBtn.addEventListener('click', async (event) => {
+            // 阻止可能的重複點擊
+            event.preventDefault();
+            event.stopPropagation();
+            
+            console.log('瀏覽器模式: Google登入按鈕被點擊');
+            
             try {
                 const provider = new firebase.auth.GoogleAuthProvider();
                 provider.setCustomParameters({
                     prompt: 'select_account'
                 });
+                
+                console.log('嘗試使用彈窗登入方式');
                 const result = await firebase.auth().signInWithPopup(provider);
                 console.log('登入成功:', result.user);
                 
@@ -103,7 +112,21 @@ function initializeAuth() {
                 showMainPage(result.user);
             } catch (error) {
                 console.error('登入失敗:', error);
-                alert(`登入失敗: ${error.message}`);
+                
+                // 如果彈出視窗被阻擋，嘗試使用重定向
+                if (error.code === 'auth/popup-blocked') {
+                    console.log("彈出視窗被阻擋，嘗試使用重定向");
+                    try {
+                        const auth = firebase.auth();
+                        const provider = new firebase.auth.GoogleAuthProvider();
+                        await auth.signInWithRedirect(provider);
+                    } catch (redirectError) {
+                        console.error('重定向登入也失敗:', redirectError);
+                        alert(`登入失敗: ${redirectError.message}`);
+                    }
+                } else {
+                    alert(`登入失敗: ${error.message}`);
+                }
             }
         });
     }
@@ -189,6 +212,21 @@ document.addEventListener('DOMContentLoaded', () => {
 // 在頁面載入完成後也進行一次檢查
 window.addEventListener('load', () => {
     console.log('頁面載入完成，檢查認證狀態');
+    
+    // 檢查是否有重定向結果
+    try {
+        firebase.auth().getRedirectResult().then(result => {
+            if (result.user) {
+                console.log('重定向登入成功:', result.user);
+                showMainPage(result.user);
+            }
+        }).catch(error => {
+            console.error('處理重定向結果錯誤:', error);
+        });
+    } catch (error) {
+        console.error('嘗試獲取重定向結果時出錯:', error);
+    }
+    
     setTimeout(() => {
         ensureAuthStateConsistency();
     }, 1000);

@@ -1412,13 +1412,64 @@ window.addEventListener('load', async () => {
     }
 });
 
-// 登入按鈕點擊事件
+// 確保不重複綁定事件
+const ensureEventsAreNotDuplicated = () => {
+    console.log('檢查事件綁定狀態');
+    
+    // 檢查 app.js 是否已經綁定過 googleLoginBtn
+    const googleLoginBtn = document.getElementById('googleLoginBtn');
+    if (googleLoginBtn && googleLoginBtn._appJsHandled) {
+        console.log('app.js 已綁定過登入按鈕事件，不再重複綁定');
+        return;
+    }
+    
+    // 只在非 PWA 模式下綁定事件
+    if (window.matchMedia('(display-mode: standalone)').matches || 
+        window.navigator.standalone === true ||
+        (window.location.search && window.location.search.includes('source=pwa'))) {
+        console.log('在 PWA 模式下，不在 app.js 中綁定登入事件');
+        return;
+    }
+    
+    // 在 DOM 載入完成後綁定事件
+    document.addEventListener('DOMContentLoaded', () => {
+        const googleLoginBtn = document.getElementById('googleLoginBtn');
+        if (googleLoginBtn && !googleLoginBtn._appJsHandled) {
+            console.log('app.js: 綁定 Google 登入按鈕事件');
+            
+            // 標記為已處理
+            googleLoginBtn._appJsHandled = true;
+            
+            googleLoginBtn.addEventListener('click', () => {
+                console.log('app.js: 點擊登入按鈕');
+                googleLogin().catch(error => {
+                    console.error('登入過程發生錯誤:', error);
+                });
+            });
+        }
+    });
+};
+
+// 初始化時調用
+ensureEventsAreNotDuplicated();
+
+// 移除原始代碼中的直接事件綁定
+// document.getElementById('googleLoginBtn').addEventListener('click', () => {
+//    console.log('點擊登入按鈕');
+//    googleLogin().catch(error => {
+//        console.error('登入過程發生錯誤:', error);
+//    });
+// });
+
+// 登入按鈕點擊事件 - 由 auth.js 或 auth-pwa.js 處理
+/*
 document.getElementById('googleLoginBtn').addEventListener('click', () => {
     console.log('點擊登入按鈕');
     googleLogin().catch(error => {
         console.error('登入過程發生錯誤:', error);
     });
 });
+*/
 
 // Firebase 身份驗證狀態變更監聽
 firebase.auth().onAuthStateChanged(async (user) => {
